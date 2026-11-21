@@ -61,3 +61,46 @@ export function ResetForm() {
     </form>
   )
 }
+
+export function SignupForm() {
+  const [f, setF] = useState({ first_name: '', last_name: '', email: '', phone: '', password: '' })
+  const [terms, setTerms] = useState(false)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
+  const sb = browserClient()
+  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value })
+  if (sent) return <p role="status" className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-900">Check your email ({f.email}) and click the confirmation link, then log in.</p>
+  return (
+    <form className="space-y-4" onSubmit={async (e) => {
+      e.preventDefault(); setError('')
+      if (!sb) { setError('Accounts aren’t connected yet on this preview site.'); return }
+      if (f.password.length < 8) { setError('Use a password with at least 8 characters.'); return }
+      if (!terms) { setError('Please accept the terms.'); return }
+      setBusy(true)
+      const { data, error } = await sb.auth.signUp({
+        email: f.email.trim().toLowerCase(), password: f.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`,
+          data: { first_name: f.first_name.trim(), last_name: f.last_name.trim(), phone: f.phone.trim(), terms_accepted: true },
+        },
+      })
+      setBusy(false)
+      if (error) { setError(error.message); return }
+      if (data.user && data.user.identities?.length === 0) { setError('An account with this email already exists. Log in instead.'); return }
+      if (data.session) { window.location.href = '/app'; return }
+      setSent(true)
+    }}>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label htmlFor="su-first" className="label">First name</label><input id="su-first" required autoComplete="given-name" className="input" value={f.first_name} onChange={set('first_name')} /></div>
+        <div><label htmlFor="su-last" className="label">Last name</label><input id="su-last" required autoComplete="family-name" className="input" value={f.last_name} onChange={set('last_name')} /></div>
+      </div>
+      <div><label htmlFor="su-email" className="label">Email</label><input id="su-email" type="email" required autoComplete="email" className="input" value={f.email} onChange={set('email')} /></div>
+      <div><label htmlFor="su-phone" className="label">Mobile phone</label><input id="su-phone" type="tel" autoComplete="tel" className="input" value={f.phone} onChange={set('phone')} /></div>
+      <div><label htmlFor="su-pw" className="label">Password</label><input id="su-pw" type="password" required autoComplete="new-password" className="input" value={f.password} onChange={set('password')} /><p className="hint">At least 8 characters.</p></div>
+      <label className="flex items-start gap-3 text-sm text-stone-700"><input type="checkbox" className="mt-0.5 h-5 w-5 accent-ink-900" checked={terms} onChange={(e) => setTerms(e.target.checked)} /><span>I agree to the <Link href="/terms" target="_blank" className="font-semibold text-pbp-700 underline">terms</Link> and <Link href="/privacy" target="_blank" className="font-semibold text-pbp-700 underline">privacy policy</Link>.</span></label>
+      {error && <p role="alert" className="text-sm font-semibold text-red-700">{error}</p>}
+      <button className="btn-dark w-full" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
+    </form>
+  )
+}

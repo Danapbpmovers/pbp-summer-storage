@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       email: accountEmail,
       password: s.password,
       options: {
-        emailRedirectTo: `${siteUrl}/app`,
+        emailRedirectTo: `${siteUrl}/login?confirmed=1&next=/app`,
         data: {
           first_name: s.booked_by === 'parent' ? str(s.parent.name).split(' ')[0] : str(s.student.first_name),
           last_name: s.booked_by === 'parent' ? str(s.parent.name).split(' ').slice(1).join(' ') : str(s.student.last_name),

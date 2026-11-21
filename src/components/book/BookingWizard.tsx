@@ -280,7 +280,7 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
                 </fieldset>
                 {!signedIn && (
                   <div className="panel">
-                    <Field id="pw" label={`Create a password for ${s.booked_by === 'parent' ? 'your' : 'the'} account`} type="password" value={s.password} onChange={(v) => set('password', v)} autoComplete="new-password" hint="At least 8 characters. Already have an account? Log in first." />
+                    <Field id="pw" label={`Create a password for ${s.booked_by === 'parent' ? 'your' : 'the'} account`} type="password" value={s.password} onChange={(v) => set('password', v)} autoComplete="new-password" hint="At least 8 characters. Your account is created when you finish booking on the last step." />
                     <p className="mt-2 text-sm"><Link href={`/login?next=${encodeURIComponent(`/book?campus=${s.campus}`)}`} className="font-semibold text-pbp-700 underline">Log in instead</Link></p>
                   </div>
                 )}
