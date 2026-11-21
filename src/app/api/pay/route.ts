@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { payments, siteUrl } from '@/config/site'
 import { orderAccess } from '@/lib/access'
-import { checkoutMethods, stripe } from '@/lib/stripe'
+import { checkoutFlow, checkoutMethods, stripe } from '@/lib/stripe'
 import { adminClient } from '@/lib/supabase/server'
 
 // Starts Stripe Checkout for an open charge. The amount follows dual pricing:
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   }
   const back = `${siteUrl}/app/orders/${ch.order_id}`
   const session = await stripe.checkout.sessions.create({
-    mode: 'payment', customer, ...checkoutMethods(method),
+    mode: 'payment', customer, ...checkoutMethods(method), integration_identifier: checkoutFlow.payLink,
     line_items: [{ quantity: 1, price_data: { currency: 'usd', unit_amount: amount, product_data: { name: ch.description } } }],
     payment_intent_data: { setup_future_usage: 'off_session', metadata: { order_id: ch.order_id, charge_id: ch.id } },
     metadata: { order_id: ch.order_id, charge_id: ch.id },

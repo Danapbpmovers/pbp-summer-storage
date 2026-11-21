@@ -7,7 +7,7 @@ import { newLabelCode } from '@/lib/labels'
 import { ADDABLE_STATUSES } from '@/lib/orders'
 import { sendEmail } from '@/lib/notify'
 import { applyPaymentMethod, quote } from '@/lib/pricing'
-import { checkoutMethods, stripe } from '@/lib/stripe'
+import { checkoutFlow, checkoutMethods, stripe } from '@/lib/stripe'
 import { adminClient } from '@/lib/supabase/server'
 
 // Adds items to an existing order and takes payment for just those items, up front.
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     await db.from('profiles').update({ stripe_customer_id: customer }).eq('id', order.customer_id)
   }
   const checkout = await stripe.checkout.sessions.create({
-    mode: 'payment', customer, ...checkoutMethods(method),
+    mode: 'payment', customer, ...checkoutMethods(method), integration_identifier: checkoutFlow.addItems,
     line_items: [{ quantity: 1, price_data: { currency: 'usd', unit_amount: pay.total_cents, product_data: { name: description, description: method === 'ach' ? 'ACH discount applied' : 'Card' } } }],
     payment_intent_data: { setup_future_usage: 'off_session', metadata: { order_id: order.id, charge_id: charge?.id ?? '' } },
     metadata: { order_id: order.id, charge_id: charge?.id ?? '' },

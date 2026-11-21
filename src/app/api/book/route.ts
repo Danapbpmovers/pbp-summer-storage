@@ -5,7 +5,7 @@ import { getCampusData } from '@/lib/campus'
 import { money } from '@/lib/format'
 import { sendEmail } from '@/lib/notify'
 import { applyPaymentMethod, quote, type Promo } from '@/lib/pricing'
-import { checkoutMethods, stripe } from '@/lib/stripe'
+import { checkoutFlow, checkoutMethods, stripe } from '@/lib/stripe'
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/supabase/env'
 import { adminClient, getSession } from '@/lib/supabase/server'
 import type { WizardState } from '@/components/book/BookingWizard'
@@ -171,6 +171,7 @@ export async function POST(req: Request) {
     mode: 'payment',
     customer,
     ...checkoutMethods(method),
+    integration_identifier: checkoutFlow.booking,
     line_items: [{
       quantity: 1,
       price_data: {

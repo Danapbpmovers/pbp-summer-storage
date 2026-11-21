@@ -45,6 +45,9 @@ Stripe (Checkout + saved payment methods), Resend (email), Twilio (SMS). Hosted 
    - **Use a restricted key** (`rk_…`) instead of the full secret key. Permissions needed: Checkout Sessions
      (write), Customers (write), PaymentIntents (write), PaymentMethods (read), Refunds (write). Mark
      `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` as **Sensitive** in Vercel.
+   - **Stripe library:** `stripe` 23 (API version `2026-11-18.endive`). Checkout uses `allowed_payment_method_types`
+     or a Payment Method Configuration (the old `payment_method_types` list no longer exists) and tags each flow with
+     an `integration_identifier`. The webhook reads only fields that are stable across API versions.
    - **Lock each price tier** with two Payment Method Configurations (Settings → Payments → Payment methods):
      one with only ACH Direct Debit (`STRIPE_PMC_ACH`), one with cards and wallets but not ACH
      (`STRIPE_PMC_CARD`). Without them the site falls back to an explicit card / bank list.
