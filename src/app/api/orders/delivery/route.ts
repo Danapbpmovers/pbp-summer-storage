@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { orderAccess } from '@/lib/access'
 import { getCampusData } from '@/lib/campus'
 import { todayIso, addDays } from '@/lib/format'
-import { sendEmail } from '@/lib/notify'
+import { sendEmail, smsOrderOwner } from '@/lib/notify'
 import { adminClient } from '@/lib/supabase/server'
 
 // Fall delivery request. Applies the posted fee rules and the request deadline.
@@ -45,5 +45,6 @@ export async function POST(req: Request) {
   await db.from('orders').update({ status: 'delivery_requested', return_method: method, return_hall: hall || null, return_address: address || null, updated_at: new Date().toISOString() }).eq('id', access.order.id)
   if (charges.length) await db.from('charges').insert(charges.map((c) => ({ ...c, order_id: access.order.id, customer_id: access.order.customer_id, status: 'open', payment_method: 'ach' })))
   await sendEmail(db, { customerId: access.order.customer_id, orderId: access.order.id, template: 'delivery_requested', to: access.email, subject: `Delivery requested – order #${access.order.order_number}`, body: `We’ve received your delivery request for ${date} (${win}). We’ll confirm the details by email.` })
+  await smsOrderOwner(db, access.order.id, 'delivery_requested', `PackStoreShip: we got your delivery request for ${date} (${win}) for order #${access.order.order_number}. We'll confirm the details soon.`)
   return NextResponse.json({ ok: true })
 }

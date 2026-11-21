@@ -42,7 +42,10 @@ Stripe (Checkout + saved payment methods), Resend (email), Twilio (SMS). Hosted 
 4. **Stripe (your existing account):** add `STRIPE_SECRET_KEY`. Enable **ACH Direct Debit** (us_bank_account) under
    Payment methods. Add a webhook to `https://<your-domain>/api/stripe/webhook` with the events listed at the top of
    `src/app/api/stripe/webhook/route.ts`, and put its signing secret in `STRIPE_WEBHOOK_SECRET`.
-5. **Email / SMS (optional):** `RESEND_API_KEY`, `TWILIO_*`. Without them, messages are recorded in `message_log`.
+5. **Email / SMS (optional):** `RESEND_API_KEY`, and for texts `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY_SID`,
+   `TWILIO_API_KEY_SECRET`, and `TWILIO_MESSAGING_SERVICE_SID` (or `TWILIO_FROM_NUMBER`). Texts go only to customers
+   who opted in; ones written 9pm–8am Eastern are scheduled for 8:05am when a Messaging Service is set. Without keys,
+   messages are recorded in `message_log`.
 6. `npm install && npm run dev`
 
 Without Supabase keys the public site still runs, using the built-in seed catalog in `src/data/seed.ts`.

@@ -1,6 +1,8 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { adminClient } from './supabase/server'
+import { smsOrderOwner } from './notify'
+import { siteUrl } from '@/config/site'
 
 // Shared intake logic for /admin and /crew. `sb` is the staff member's own
 // client (RLS checks staff role); charges are written with the service role.
@@ -31,8 +33,11 @@ export async function receive(sb: SupabaseClient, staffId: string, input: { item
       await sb.from('order_items').update({ exceptions: [...(item.exceptions ?? []), 'overweight'] }).eq('id', item.id)
     }
   }
-  // First item received moves the order along.
-  await sb.from('orders').update({ status: 'received', updated_at: new Date().toISOString() }).eq('id', item.order_id).in('status', ['confirmed', 'scheduled', 'reserved', 'pending_payment'])
+  // First item received moves the order along, and texts the customer once.
+  const { data: moved } = await sb.from('orders').update({ status: 'received', updated_at: new Date().toISOString() }).eq('id', item.order_id).in('status', ['confirmed', 'scheduled', 'reserved', 'pending_payment']).select('order_number')
+  if (moved?.length) {
+    await smsOrderOwner(adminClient()!, item.order_id, 'items_received', `PackStoreShip: we've received your items for order #${moved[0].order_number}. See photos of each item in your account: ${siteUrl}/app`)
+  }
   return { orderId: item.order_id as string, overweightCents }
 }
 
