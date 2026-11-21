@@ -54,16 +54,24 @@ export const warehouse = {
 }
 
 /**
- * Dual pricing through Stripe (owner decision, Nov 2026, set up for Massachusetts):
- * stored prices are the actual prices, and bank transfer (ACH) pays exactly that.
- * Card payments are 3% higher. Both prices are shown side by side.
+ * Dual pricing through Stripe, presented as an ACH discount (owner decision, Nov 2026, Massachusetts).
+ * Stored prices are the ACH amounts (e.g. $55.00). The listed price everywhere is the card price
+ * (stored + 3%, e.g. $56.65), and paying by bank transfer shows an "ACH discount" back to the stored
+ * amount. Savings are shown in dollars, not as a percent, because $1.65 off $56.65 is 2.9%, not 3%.
  */
 export const payments = {
   cardFeePercent: 3,
   defaultMethod: 'ach' as 'ach' | 'card',
 }
 
+/** Listed (card) price for a stored ACH amount. */
 export const cardPrice = (cents: number) => Math.round(cents * (1 + payments.cardFeePercent / 100))
+
+/** "$56.65 ($55.00 with ACH discount)" for running text. */
+export const priceText = (achCents: number) => {
+  const m = (c: number) => (c / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  return `${m(cardPrice(achCents))} (${m(achCents)} with ACH discount)`
+}
 
 export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.packstoreship.com'
 

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { brand, contact, legal, payments } from '@/config/site'
+import { brand, contact, legal } from '@/config/site'
 import { PageHero } from '@/components/ui'
 
 export const metadata: Metadata = { title: 'Terms & conditions', robots: { index: false }, alternates: { canonical: '/terms' } }
@@ -16,7 +16,7 @@ export default function Terms() {
           <h2>1. Services and storage term</h2>
           <p>Each stored item’s price covers up to four months of storage starting when we receive it. Storage beyond that is billed at our current extended-storage rate. Each storage period is a separate order, and an order ends when its items are delivered.</p>
           <h2>2. Prices, payment and saved payment methods</h2>
-          <p>Prices and fees are listed on our pricing page. Prices shown are for bank transfer (ACH). Card payments are {payments.cardFeePercent}% higher, and both amounts are shown before you pay. You pay when you book. By saving a payment method you authorize us to charge it for amounts that come up under these terms, including items logged at drop-off that differ from your booking, overweight and unthawed-fridge fees, delivery and scheduling fees, shipping costs, extended storage and late fees. Each charge is itemized in your account. Unpaid balances may incur late fees, and we may hold delivery until the balance is paid.</p>
+          <p>Prices and fees are listed on our pricing page. Listed prices apply to card payments. Paying by bank transfer (ACH) receives the ACH discount shown on the pricing page and at checkout, and both amounts are shown before you pay. You pay when you book. By saving a payment method you authorize us to charge it for amounts that come up under these terms, including items logged at drop-off that differ from your booking, overweight and unthawed-fridge fees, delivery and scheduling fees, shipping costs, extended storage and late fees. Each charge is itemized in your account. Unpaid balances may incur late fees, and we may hold delivery until the balance is paid.</p>
           <h2>3. Your responsibilities</h2>
           <p>You must pack items according to our packing guidelines, label them, and not store prohibited items: hazardous materials, open food, liquids in shipments, or anything illegal. We may refuse, return or dispose of prohibited items.</p>
           <h2>4. Pickup, drop-off and delivery</h2>

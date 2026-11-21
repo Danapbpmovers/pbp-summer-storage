@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { payments, referralSources } from '@/config/site'
+import { cardPrice, payments, priceText, referralSources } from '@/config/site'
 import { addDays, day, inWindow, money, shortDay, todayIso } from '@/lib/format'
 import { applyPaymentMethod, quote, type PayMethod, type Promo } from '@/lib/pricing'
 import type { Campus, CampusData } from '@/lib/types'
@@ -191,7 +191,7 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
     }
   }
 
-  const pay = applyPaymentMethod(q.due_now_cents, s.pay_method, payments)
+  const pay = applyPaymentMethod(q, s.pay_method, payments)
 
   return (
     <div className="wrap py-8 pb-32 lg:pb-12">
@@ -326,9 +326,9 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
             {step === 3 && (
               <div className="space-y-6">
                 <div className="panel max-w-xl">
-                  <p className="text-stone-700">Every order includes <strong>${data.insurance.included_cents / 100}</strong> of declared-value coverage. Add more at ${data.insurance.addon_cents_per_100 / 100} per $100{data.insurance.max_per_box_cents ? `, up to $${data.insurance.max_per_box_cents / 100} per box and $${(data.insurance.max_per_order_cents ?? 0) / 100} per order` : ''}.</p>
+                  <p className="text-stone-700">Every order includes <strong>${data.insurance.included_cents / 100}</strong> of declared-value coverage. Add more at ${priceText(data.insurance.addon_cents_per_100)} per $100{data.insurance.max_per_box_cents ? `, up to $${data.insurance.max_per_box_cents / 100} per box and $${(data.insurance.max_per_order_cents ?? 0) / 100} per order` : ''}.</p>
                   <div className="mt-5"><CoverageInput value={s.declared_value_cents} onChange={(v) => set('declared_value_cents', v)} includedCents={data.insurance.included_cents} maxCents={data.insurance.max_per_order_cents} /></div>
-                  <p className="mt-3 text-sm font-semibold text-ink-900">{q.coverage.addon_cents ? `Extra coverage: ${money(q.coverage.addon_cents)}` : 'No extra charge'}</p>
+                  <p className="mt-3 text-sm font-semibold text-ink-900">{q.coverage.addon_cents ? `Extra coverage: ${money(cardPrice(q.coverage.addon_cents))} (${money(q.coverage.addon_cents)} with ACH discount)` : 'No extra charge'}</p>
                 </div>
                 <ul className="max-w-xl space-y-2 text-sm text-stone-600">
                   <li>• TVs and monitors must be boxed.</li>
@@ -418,7 +418,7 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
                   <div className="grid gap-3 sm:grid-cols-2">
                     {([
                       ['on_campus', 'On campus', 'Pick up at a Move-In Station near your hall. Free during peak move-in.'],
-                      ['off_campus', 'Off-campus address', `Delivered 9am–5pm${(() => { const f = data.fees.find((x) => x.code === 'offcampus_delivery'); return f ? `, ${money(f.amount_cents)}` : '' })()}.`],
+                      ['off_campus', 'Off-campus address', `Delivered 9am–5pm${(() => { const f = data.fees.find((x) => x.code === 'offcampus_delivery'); return f ? `, ${priceText(f.amount_cents)}` : '' })()}.`],
                       ...(s.service === 'storage' ? [['ship', 'Ship it to me', 'Not coming back? Billed at the actual shipping cost.'], ['extended', 'Keep it stored', 'Studying abroad or need longer storage.']] as const : []),
                     ] as const).map(([v, t, b]) => (
                       <label key={v} className={`cursor-pointer rounded-xl border p-4 ${s.return_method === v ? 'border-ink-900 bg-sand-50 ring-1 ring-ink-900' : 'border-stone-300 bg-white'}`}>
@@ -471,7 +471,7 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
                 </div>
 
                 <div className="panel max-w-xl">
-                  <PayMethodToggle method={s.pay_method} setMethod={(m) => set('pay_method', m)} actualCents={q.due_now_cents} />
+                  <PayMethodToggle method={s.pay_method} setMethod={(m) => set('pay_method', m)} quote={q} />
                 </div>
 
                 <p className="max-w-xl text-sm text-stone-600">
@@ -484,7 +484,7 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
                 {submitError && <p role="alert" className="max-w-xl rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{submitError}</p>}
 
                 <button type="button" className="btn-primary w-full max-w-xl text-base" disabled={submitting || !backendReady} onClick={submit}>
-                  {submitting ? 'Working…' : s.reserve_only || pay.total_cents === 0 ? 'Reserve my spot' : `Pay ${money(pay.total_cents)} by ${s.pay_method === 'ach' ? 'bank transfer' : 'card'}`}
+                  {submitting ? 'Working…' : s.reserve_only || pay.total_cents === 0 ? 'Reserve my spot' : `Pay ${money(pay.total_cents)} by ${s.pay_method === 'ach' ? 'bank transfer (ACH discount)' : 'card'}`}
                 </button>
               </div>
             )}
@@ -509,7 +509,7 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs text-stone-500">{q.item_count} items · {s.pay_method === 'ach' ? 'bank' : 'card'}</p>
+            <p className="text-xs text-stone-500">{q.item_count} items · {s.pay_method === 'ach' ? 'ACH discount' : 'card'}</p>
             <p className="text-lg font-extrabold text-ink-900">{money(pay.total_cents)}</p>
           </div>
           {step < 5 ? <button type="button" className="btn-dark" onClick={next}>Continue</button> : <span className="text-sm font-semibold text-stone-600">Review above</span>}

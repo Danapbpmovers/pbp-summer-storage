@@ -103,7 +103,7 @@ export async function addCharge(fd: FormData) {
       }
     }
   }
-  if (prof?.email) await sendEmail(db, { customerId: order.customer_id, orderId, template: 'charge_added', to: prof.email, subject: `Order #${order.order_number}: ${description}`, body: `A charge was added to your order: ${description}, ${money(actual)} (bank transfer price; card is ${payments.cardFeePercent}% more).\n\nSee details and pay in your account.` })
+  if (prof?.email) await sendEmail(db, { customerId: order.customer_id, orderId, template: 'charge_added', to: prof.email, subject: `Order #${order.order_number}: ${description}`, body: `A charge was added to your order: ${description}, ${money(Math.round(actual * (1 + payments.cardFeePercent / 100)))} (${money(actual)} with the ACH discount when you pay by bank).\n\nSee details and pay in your account.` })
   revalidatePath(`/admin/orders/${orderId}`)
 }
 

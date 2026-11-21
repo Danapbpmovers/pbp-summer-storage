@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     dropoff_method: reserveOnly || s.service !== 'storage' ? 'undecided' : s.dropoff_method,
     dropoff_date: s.dropoff_date || null, return_method: s.return_method,
   }, promo)
-  const pay = applyPaymentMethod(q.due_now_cents, method, payments)
+  const pay = applyPaymentMethod(q, method, payments)
 
   // ---------------------------------------------------------------- capacity
   let slotId: string | null = null
@@ -153,11 +153,11 @@ export async function POST(req: Request) {
 
   const { data: charge } = await db.from('charges').insert({
     order_id: order.id, customer_id: userId, description: `Order #${order.order_number} – ${s.service === 'storage' ? 'storage' : 'Ship Ahead'}`,
-    amount_cents: pay.total_cents, payment_method: method, card_fee_cents: method === 'card' ? pay.card_cents - pay.ach_cents : 0, status: 'open',
+    amount_cents: pay.total_cents, payment_method: method, card_fee_cents: method === 'card' ? pay.ach_discount_cents : 0, status: 'open',
   }).select('id').single()
 
   if (!stripe) {
-    await sendEmail(db, { customerId: userId, orderId: order.id, template: 'booking_pending', to: accountEmail!, subject: `Order #${order.order_number} received`, body: `We’ve received your booking:\n\n${summary}\n\nTotal ${money(pay.total_cents)} (${method === 'ach' ? 'bank transfer' : 'card'}). We’ll send a payment link shortly.` })
+    await sendEmail(db, { customerId: userId, orderId: order.id, template: 'booking_pending', to: accountEmail!, subject: `Order #${order.order_number} received`, body: `We’ve received your booking:\n\n${summary}\n\nTotal ${money(pay.total_cents)} (${method === 'ach' ? `bank transfer, ACH discount of ${money(pay.ach_discount_cents)} applied` : 'card'}). We’ll send a payment link shortly.` })
     return NextResponse.json({ redirect: `${orderUrl}${orderUrl.includes('?') ? '&' : '?'}pending=1` })
   }
 
@@ -179,7 +179,7 @@ export async function POST(req: Request) {
       price_data: {
         currency: 'usd',
         unit_amount: pay.total_cents,
-        product_data: { name: `${data.campus.short_name} ${s.service === 'storage' ? 'summer storage' : 'Ship Ahead'} – order #${order.order_number}`, description: `${q.item_count} item(s)${method === 'card' ? ' · card price' : ' · bank transfer price'}` },
+        product_data: { name: `${data.campus.short_name} ${s.service === 'storage' ? 'summer storage' : 'Ship Ahead'} – order #${order.order_number}`, description: `${q.item_count} item(s)${method === 'card' ? ' · card' : ' · ACH discount applied'}` },
       },
     }],
     payment_intent_data: { setup_future_usage: 'off_session', metadata: { order_id: order.id, charge_id: charge?.id ?? '' } },

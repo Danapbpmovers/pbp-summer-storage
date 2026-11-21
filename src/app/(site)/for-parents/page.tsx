@@ -22,7 +22,7 @@ export default function ForParents() {
         {[
           { t: 'Book and pay', b: 'Book for your student on your phone in a few minutes, and pay by bank transfer or card.' },
           { t: 'Join their account', b: 'Your student can invite you. You’ll see every item with its photo, every invoice, and the delivery date and location.' },
-          { t: 'Clear costs', b: 'Per-item prices, public fees and no deposit. Anything added at drop-off, such as an overweight box, is itemized with a reason.' },
+          { t: 'Clear costs', b: 'Per-item prices and a public fee list. Anything added at drop-off, such as an overweight box, is itemized with a reason.' },
         ].map((x) => <div key={x.t} className="card"><h2 className="h3">{x.t}</h2><p className="mt-2 text-stone-600">{x.b}</p></div>)}
       </section>
       <section className="wrap pb-6">

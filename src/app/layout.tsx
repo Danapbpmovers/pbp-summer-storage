@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: 'Boston Student Summer Storage & Shipping | PackStoreShip', template: '%s | PackStoreShip' },
   description:
-    'Summer storage, ship-home and Ship Ahead for Boston college students since 1986. Per-item pricing, no deposit, on-campus drop-off stations and curbside pickup.',
+    'Summer storage, ship-home and Ship Ahead for Boston college students since 1986. Per-item pricing, on-campus drop-off stations and curbside pickup.',
   openGraph: { siteName: brand.name, type: 'website', locale: 'en_US' },
   alternates: { canonical: '/' },
 }

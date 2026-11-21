@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { payments } from '@/config/site'
+import { payments, priceText } from '@/config/site'
 import { applyPaymentMethod, quote } from '@/lib/pricing'
 import { money } from '@/lib/format'
 import type { CampusData } from '@/lib/types'
@@ -24,12 +24,12 @@ export default function PricingCalculator({ data }: { data: CampusData }) {
         <div className="mt-8 max-w-md rounded-xl border border-stone-200 bg-sand-50 p-5">
           <h3 className="h3 mb-3">Coverage</h3>
           <CoverageInput value={declared} onChange={setDeclared} includedCents={data.insurance.included_cents} maxCents={data.insurance.max_per_order_cents} />
-          <p className="hint">${data.insurance.addon_cents_per_100 / 100} per extra $100 of declared value.</p>
+          <p className="hint">{priceText(data.insurance.addon_cents_per_100)} per extra $100 of declared value.</p>
         </div>
       </div>
       <div className="lg:sticky lg:top-24 lg:self-start">
         <CartSummary quote={q} method={method}>
-          <PayMethodToggle method={method} setMethod={setMethod} actualCents={q.due_now_cents} />
+          <PayMethodToggle method={method} setMethod={setMethod} quote={q} />
           <Link href={bookHref} className="btn-primary mt-4 w-full">Book these items</Link>
           <p className="mt-2 text-center text-xs text-stone-500">Prices are per item and cover up to 4 months.</p>
         </CartSummary>
@@ -38,9 +38,9 @@ export default function PricingCalculator({ data }: { data: CampusData }) {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs text-stone-500">{q.item_count} items · {method === 'ach' ? 'bank transfer' : 'card'}</p>
+            <p className="text-xs text-stone-500">{q.item_count} items · {method === 'ach' ? 'with ACH discount' : 'card'}</p>
             <p className="text-lg font-extrabold text-ink-900">
-              {money(applyPaymentMethod(q.due_now_cents, method, payments).total_cents)}
+              {money(applyPaymentMethod(q, method, payments).total_cents)}
             </p>
           </div>
           <Link href={bookHref} className="btn-primary">Book</Link>

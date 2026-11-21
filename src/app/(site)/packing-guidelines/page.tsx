@@ -11,7 +11,7 @@ const rules: [string, string][] = [
   ['Label everything', 'Put a QR label from your account on each item, or write your name and phone number on the outside with a marker. For suitcases and duffles, also put a note with your name and number inside.'],
   ['Tape top and bottom', 'Tape every box closed on both ends. Don’t fold the flaps under each other, and ask our crew if you’re not sure how.'],
   ['Fill the space', 'Fill gaps with paper or bubble wrap so nothing shifts. Fragile items need at least 3 inches of padding on every side.'],
-  ['Mind the weight', 'If you can’t lift it, neither can we. Boxes over 50 lb have a $1.25 per pound fee, and the maximum is 75 lb. Pack books in small boxes.'],
+  ['Mind the weight', 'If you can’t lift it, neither can we. Boxes over 50 lb have a per-pound overweight fee (listed on the pricing page), and the maximum is 75 lb. Pack books in small boxes.'],
   ['Bins must close', 'Reusable bins have to close completely without bulging.'],
   ['Box TVs and monitors', 'All TVs and monitors must be boxed, ideally in the original packaging. Ask us about professional packing if you need it.'],
   ['Bag mattresses', 'Every mattress must be in an approved mattress bag. Bags are sold at the Move-Out Stations.'],

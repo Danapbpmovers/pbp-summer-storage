@@ -18,8 +18,10 @@ Stripe (Checkout + saved payment methods), Resend (email), Twilio (SMS). Hosted 
 
 ### Pricing rules
 
-- **Dual pricing (Massachusetts):** stored prices are the actual prices and are what **bank transfer (ACH)** pays.
-  **Card** pays +3%, shown side by side everywhere. Set in `src/config/site.ts` → `payments`.
+- **Dual pricing, shown as an ACH discount (Massachusetts):** the listed price everywhere is the **card** price.
+  Paying by **bank transfer (ACH)** shows an "ACH discount" and pays the stored price. Stored prices are the ACH
+  amounts (e.g. $55.00), and the listed card price is stored + 3% (e.g. $56.65). Savings are shown in dollars,
+  not as a percent. Set in `src/config/site.ts` → `payments`.
 - Prices, fees, coverage, dates, stations and capacity are all data in Supabase, editable in `/admin` with no deploy.
 - `src/lib/pricing.ts` is the single pricing engine. The browser uses it for the live cart, and the server re-runs it
   against database prices before charging. It never trusts the browser's total.

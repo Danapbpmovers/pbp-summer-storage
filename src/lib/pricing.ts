@@ -46,15 +46,28 @@ export type PayMethod = 'ach' | 'card'
 
 export interface PaymentBreakdown {
   method: PayMethod
-  ach_cents: number   // actual price — what bank transfer pays
-  card_cents: number  // actual price + card percentage
-  total_cents: number // for the chosen method
+  card_cents: number         // listed price (what a card pays)
+  ach_cents: number          // after the ACH discount (the stored, actual amount)
+  ach_discount_cents: number // card_cents - ach_cents
+  total_cents: number        // for the chosen method
 }
 
-/** Dual pricing: ACH pays the actual amount; card pays it plus cardFeePercent. */
-export function applyPaymentMethod(actualCents: number, method: PayMethod, cfg: { cardFeePercent: number }): PaymentBreakdown {
-  const card = Math.round(actualCents * (1 + cfg.cardFeePercent / 100))
-  return { method, ach_cents: actualCents, card_cents: card, total_cents: method === 'card' ? card : actualCents }
+/** Listed (card) price for an actual/ACH amount. Negative amounts (discounts) scale the same way. */
+export const listed = (cents: number, cardFeePercent: number) =>
+  Math.sign(cents) * Math.round(Math.abs(cents) * (1 + cardFeePercent / 100))
+
+/**
+ * Dual pricing, presented as an ACH discount (Massachusetts): the listed price is the card
+ * price; paying by bank transfer (ACH) takes the discount and pays the stored amount.
+ * For a quote, the card total is the sum of each line's listed price so what customers see
+ * always adds up to the cent.
+ */
+export function applyPaymentMethod(input: number | Quote, method: PayMethod, cfg: { cardFeePercent: number }): PaymentBreakdown {
+  const ach = typeof input === 'number' ? input : input.due_now_cents
+  const card = typeof input === 'number'
+    ? listed(input, cfg.cardFeePercent)
+    : Math.max(0, input.lines.reduce((t, l) => t + listed(l.total_cents, cfg.cardFeePercent), 0))
+  return { method, card_cents: card, ach_cents: ach, ach_discount_cents: Math.max(0, card - ach), total_cents: method === 'card' ? card : ach }
 }
 
 const fee = (fees: FeeRule[], code: string) => fees.find((f) => f.code === code)

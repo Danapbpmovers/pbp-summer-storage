@@ -9,8 +9,7 @@ export function faqGroups(d: { deliveryDeadline: string; fallWindow: string; pea
   return [
     {
       id: 'booking', title: 'Booking & payment', items: [
-        { q: 'Do I need to pay a deposit?', a: 'No. Signing up is free and there’s no deposit. You pay per item when your things are stored.' },
-        { q: 'When do I pay, and how?', a: 'You pay for the items you book when you check out online. Bank transfer (ACH) pays the listed price. Card payments are 3% higher. We save your payment method so later charges, such as extra items logged at drop-off, an overweight box or a delivery fee, can be added to your account. You’ll get an itemized receipt for each one.' },
+        { q: 'When do I pay, and how?', a: 'You pay for the items you book when you check out online. Pay by bank transfer (ACH) and you get the ACH discount off the listed price, or pay by card at the listed price. We save your payment method so later charges, such as extra items logged at drop-off, an overweight box or a delivery fee, can be added to your account. You’ll get an itemized receipt for each one.' },
         { q: 'What if I bring more or different items than I booked?', a: 'Our crew logs every item at drop-off. If the count or type differs from your booking, the difference is charged to your saved payment method and shows up in your account with a photo of each item.' },
         { q: 'Can a parent book and pay?', a: 'Yes. A parent can book for a student, or a student can invite a parent to their account to view items and photos, pay invoices or schedule deliveries.' },
       ],
@@ -47,7 +46,7 @@ export function faqGroups(d: { deliveryDeadline: string; fallWindow: string; pea
     },
     {
       id: 'coverage', title: 'Coverage & claims', items: [
-        { q: 'What coverage is included?', a: 'Every order includes $300 of declared-value coverage. You can add more at $3 per additional $100 when you book.' },
+        { q: 'What coverage is included?', a: 'Every order includes $300 of declared-value coverage. You can add more coverage when you book, priced per $100 of extra value (see the pricing page).' },
         { q: 'Is there a coverage limit?', a: 'Coverage is capped at $500 per box and $1,500 per order.' },
         { q: 'Something was damaged. What do I do?', a: 'Tell us within 3 days of delivery through your account. Keep the box and packing materials, and include photos and proof of the item’s value or repair cost.' },
       ],
@@ -63,7 +62,7 @@ export function faqGroups(d: { deliveryDeadline: string; fallWindow: string; pea
       id: 'packing', title: 'Packing', items: [
         { q: 'Do I need to bag my mattress?', a: 'Yes. All mattresses must be in an approved mattress bag. Bags are sold at the Move-Out Stations.' },
         { q: 'Do TVs and monitors need a box?', a: 'Yes. All TVs and monitors must be boxed, ideally in their original packaging.' },
-        { q: 'How heavy can a box be?', a: 'Boxes over 50 lb have a $1.25 per pound fee, and the maximum is 75 lb. Use small boxes for books.' },
+        { q: 'How heavy can a box be?', a: 'Boxes over 50 lb have a per-pound overweight fee (see the pricing page), and the maximum is 75 lb. Use small boxes for books.' },
       ],
     },
     {

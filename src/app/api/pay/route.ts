@@ -5,7 +5,7 @@ import { stripe, stripeMethodTypes } from '@/lib/stripe'
 import { adminClient } from '@/lib/supabase/server'
 
 // Starts Stripe Checkout for an open charge. The amount follows dual pricing:
-// bank transfer = actual amount, card = actual + cardFeePercent.
+// listed (card) price, or the ACH discount price for bank transfer.
 export async function POST(req: Request) {
   const db = adminClient()
   if (!db || !stripe) return NextResponse.json({ error: 'Online payment isn’t connected yet. Please call or email us.' }, { status: 503 })
@@ -17,7 +17,8 @@ export async function POST(req: Request) {
   if (!access?.canPay) return NextResponse.json({ error: 'You don’t have permission to pay for this order.' }, { status: 403 })
 
   const actual = ch.amount_cents - (ch.card_fee_cents ?? 0)
-  const card = Math.round(actual * (1 + payments.cardFeePercent / 100))
+  // Keep the exact quoted card amount if the customer already chose card; otherwise list it.
+  const card = ch.payment_method === 'card' ? ch.amount_cents : Math.round(actual * (1 + payments.cardFeePercent / 100))
   const amount = method === 'card' ? card : actual
   await db.from('charges').update({ amount_cents: amount, card_fee_cents: method === 'card' ? card - actual : 0, payment_method: method }).eq('id', ch.id)
 

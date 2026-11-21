@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { brand, operator, store } from '@/config/site'
+import { brand, cardPrice, operator, store } from '@/config/site'
 import { defaultCampusSlug, getCampusData, listCampuses } from '@/lib/campus'
 import { money } from '@/lib/format'
 import { faqGroups } from '@/data/faq'
@@ -8,7 +8,7 @@ import ReminderForm from '@/components/ReminderForm'
 import { Check, Faq, campusDates } from '@/components/ui'
 
 const steps = [
-  { n: 1, t: 'Sign up in minutes', b: 'Pick your school, add your items and see your total as you go. No deposit.' },
+  { n: 1, t: 'Sign up in minutes', b: 'Pick your school, add your items and see your total as you go.' },
   { n: 2, t: 'Pack', b: `Add boxes, tape and mattress bags to your order, or buy them at ${operator} on Comm Ave or at the campus stations.` },
   { n: 3, t: 'Drop off or schedule curbside', b: 'Bring things to a Move-Out Station outside your dorm, or book a curbside pickup. Each item is labeled and photographed.' },
   { n: 4, t: 'We bring it back', b: 'Request fall delivery in your account. Pick up at a Move-In Station near your new hall, or have it delivered off campus.' },
@@ -19,7 +19,7 @@ export default async function HomeView() {
   const dates = bu ? campusDates(bu) : null
   const largeBox = bu?.catalog.find((i) => i.name.startsWith('Large Box'))
   const faq = dates ? faqGroups(dates).flatMap((g) => g.items).filter((f) =>
-    ['Do I need to pay a deposit?', 'How does move-out work at BU?', 'How do I get my storage back in the fall?', 'What coverage is included?', 'Can a parent book and pay?', 'What can’t I store?'].includes(f.q)) : []
+    ['When do I pay, and how?', 'How does move-out work at BU?', 'How do I get my storage back in the fall?', 'What coverage is included?', 'Can a parent book and pay?', 'What can’t I store?'].includes(f.q)) : []
 
   return (
     <>
@@ -42,7 +42,7 @@ export default async function HomeView() {
             </div>
             <ul className="mt-8 flex flex-wrap gap-2" aria-label="Highlights">
               <li className="chip">Serving BU since {brand.since}</li>
-              <li className="chip">No signup deposit</li>
+              <li className="chip">ACH discount when you pay by bank</li>
               <li className="chip">Solar-powered warehouse</li>
                           </ul>
           </div>
@@ -58,7 +58,7 @@ export default async function HomeView() {
                   return (
                     <li key={String(n)} className="flex justify-between py-3">
                       <span>{n} <span className="text-stone-400">× {q}</span></span>
-                      <span className="font-semibold">{item ? money(item.price_cents * Number(q)) : ''}</span>
+                      <span className="font-semibold">{item ? money(cardPrice(item.price_cents) * Number(q)) : ''}</span>
                     </li>
                   )
                 })}
@@ -116,11 +116,11 @@ export default async function HomeView() {
           <p className="eyebrow mb-3">Pricing</p>
           <h2 id="pricing" className="h2">Pay per item. Nothing hidden.</h2>
           <p className="mt-4 text-lg text-stone-600">
-            {largeBox ? <>A large box is <strong className="text-ink-900">{money(largeBox.price_cents)}</strong> for the whole summer. </> : null}
+            {largeBox ? <>A large box is <strong className="text-ink-900">{money(cardPrice(largeBox.price_cents))}</strong> for the whole summer, or {money(largeBox.price_cents)} with the ACH discount. </> : null}
             Every price covers up to 4 months and includes $300 of coverage. Every fee is listed publicly.
           </p>
           <ul className="mt-6 space-y-3 text-stone-700">
-            {['No deposit, and no early-withdrawal fee', 'Pay by bank transfer (ACH) or card', 'Free curbside pickup on peak move-out dates', 'Add coverage at $3 per extra $100'].map((t) => (
+            {['No early-withdrawal fee', 'Save with the ACH discount when you pay by bank', 'Free curbside pickup on peak move-out dates', 'Add extra coverage when you book'].map((t) => (
               <li key={t} className="flex gap-2"><Check />{t}</li>
             ))}
           </ul>
@@ -133,7 +133,8 @@ export default async function HomeView() {
           {(bu?.catalog ?? []).filter((i) => ['Large Box', 'Extra Large Box', 'Dorm Fridge – Cube', 'Mattress – Twin', 'Bike', 'Suitcase'].some((n) => i.name.startsWith(n))).slice(0, 6).map((i) => (
             <div key={i.id} className="rounded-2xl border border-stone-200 bg-white p-4">
               <p className="text-sm text-stone-600">{i.name.replace(/ \(.*\)$/, '')}</p>
-              <p className="mt-1 text-2xl font-extrabold text-ink-900">{money(i.price_cents)}</p>
+              <p className="mt-1 text-2xl font-extrabold text-ink-900">{money(cardPrice(i.price_cents))}</p>
+              <p className="text-sm font-semibold text-ok">{money(i.price_cents)} with ACH</p>
             </div>
           ))}
         </div>

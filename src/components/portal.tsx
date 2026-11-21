@@ -6,7 +6,7 @@ import type { CalendarWindow } from '@/lib/types'
 
 export function PayButtons({ chargeId, description, amountCents, method, cardFeeCents }: { chargeId: string; description: string; amountCents: number; method: 'ach' | 'card'; cardFeeCents: number }) {
   const ach = method === 'card' ? amountCents - cardFeeCents : amountCents
-  const card = Math.round(ach * (1 + payments.cardFeePercent / 100))
+  const card = method === 'card' ? amountCents : Math.round(ach * (1 + payments.cardFeePercent / 100))
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const pay = async (m: 'ach' | 'card') => {
@@ -20,8 +20,8 @@ export function PayButtons({ chargeId, description, amountCents, method, cardFee
     <div className="mt-4 rounded-xl border border-gold-500/50 bg-gold-100 p-4">
       <p className="font-semibold text-ink-900">Due: {description}</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button className="btn-dark btn-sm" disabled={busy} onClick={() => pay('ach')}>Pay {money(ach)} by bank</button>
         <button className="btn-outline btn-sm" disabled={busy} onClick={() => pay('card')}>Pay {money(card)} by card</button>
+        <button className="btn-dark btn-sm" disabled={busy} onClick={() => pay('ach')}>Pay {money(ach)} by bank (ACH discount)</button>
       </div>
       {err && <p role="alert" className="mt-2 text-sm font-semibold text-red-700">{err}</p>}
     </div>

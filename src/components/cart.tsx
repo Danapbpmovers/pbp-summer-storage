@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { cardPrice, payments } from '@/config/site'
 import { money } from '@/lib/format'
-import { applyPaymentMethod, type PayMethod, type Quote } from '@/lib/pricing'
+import { applyPaymentMethod, listed, type PayMethod, type Quote } from '@/lib/pricing'
 import { categoryLabels, type CatalogItem, type ItemCategory } from '@/lib/types'
 
 export function Stepper({ value, onChange, label }: { value: number; onChange: (n: number) => void; label: string }) {
@@ -59,7 +59,7 @@ export function ItemPicker({ catalog, items, setQty }: { catalog: CatalogItem[];
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[15px] font-semibold leading-snug text-ink-900">{i.name}</span>
-                <span className="block text-sm text-stone-600">{money(i.price_cents)} <span className="text-stone-400">· card {money(cardPrice(i.price_cents))}</span>{i.note ? <span className="text-stone-500"> · {i.note}</span> : null}</span>
+                <span className="block text-sm text-stone-600">{money(cardPrice(i.price_cents))} <span className="font-semibold text-ok">· {money(i.price_cents)} with ACH</span>{i.note ? <span className="text-stone-500"> · {i.note}</span> : null}</span>
               </span>
               <Stepper value={n} onChange={(v) => setQty(i.id, v)} label={i.name} />
             </li>
@@ -71,11 +71,11 @@ export function ItemPicker({ catalog, items, setQty }: { catalog: CatalogItem[];
   )
 }
 
-export function PayMethodToggle({ method, setMethod, actualCents }: { method: PayMethod; setMethod: (m: PayMethod) => void; actualCents: number }) {
-  const p = applyPaymentMethod(actualCents, 'ach', payments)
-  const opts: { id: PayMethod; t: string; amount: number }[] = [
-    { id: 'ach', t: 'Bank transfer (ACH)', amount: p.ach_cents },
-    { id: 'card', t: 'Credit / debit card', amount: p.card_cents },
+export function PayMethodToggle({ method, setMethod, quote }: { method: PayMethod; setMethod: (m: PayMethod) => void; quote: Quote }) {
+  const p = applyPaymentMethod(quote, 'ach', payments)
+  const opts: { id: PayMethod; t: string; amount: number; note: string | null }[] = [
+    { id: 'ach', t: 'Bank transfer (ACH)', amount: p.ach_cents, note: p.ach_discount_cents ? `Save ${money(p.ach_discount_cents)}` : 'ACH discount' },
+    { id: 'card', t: 'Credit / debit card', amount: p.card_cents, note: null },
   ]
   return (
     <fieldset>
@@ -86,10 +86,11 @@ export function PayMethodToggle({ method, setMethod, actualCents }: { method: Pa
             <input type="radio" name="paymethod" className="sr-only" checked={method === o.id} onChange={() => setMethod(o.id)} />
             <span className="block font-semibold text-ink-900">{o.t}</span>
             <span className="block text-stone-600">{money(o.amount)}</span>
+            {o.note && <span className="mt-0.5 block font-semibold text-ok">{o.note}</span>}
           </label>
         ))}
       </div>
-      <p className="hint">Card payments are {payments.cardFeePercent}% higher.</p>
+      <p className="hint">Pay by bank transfer and get the ACH discount.</p>
     </fieldset>
   )
 }
@@ -97,7 +98,7 @@ export function PayMethodToggle({ method, setMethod, actualCents }: { method: Pa
 export function CartSummary({ quote, method, title = 'Your estimate', children, compact = false }: {
   quote: Quote; method: PayMethod; title?: string; children?: React.ReactNode; compact?: boolean
 }) {
-  const pay = applyPaymentMethod(quote.due_now_cents, method, payments)
+  const pay = applyPaymentMethod(quote, method, payments)
   const visible = compact ? quote.lines.slice(-4) : quote.lines
   return (
     <div className="rounded-2xl border border-stone-200 bg-white shadow-sm" aria-live="polite">
@@ -114,19 +115,22 @@ export function CartSummary({ quote, method, title = 'Your estimate', children, 
             {visible.map((l, i) => (
               <li key={i} className="flex justify-between gap-3">
                 <span className="text-stone-700">{l.label}{l.qty > 1 ? <span className="text-stone-400"> × {l.qty}</span> : null}</span>
-                <span className={`shrink-0 font-semibold ${l.total_cents < 0 ? 'text-ok' : ''}`}>{money(l.total_cents)}</span>
+                <span className={`shrink-0 font-semibold ${l.total_cents < 0 ? 'text-ok' : ''}`}>{money(listed(l.total_cents, payments.cardFeePercent))}</span>
               </li>
             ))}
+            {method === 'ach' && pay.ach_discount_cents > 0 && (
+              <li className="flex justify-between gap-3 text-ok"><span className="font-semibold">ACH discount</span><span className="shrink-0 font-semibold">−{money(pay.ach_discount_cents)}</span></li>
+            )}
           </ul>
         )}
       </div>
       <div className="flex items-baseline justify-between border-t border-stone-100 px-5 py-4">
-        <span className="font-semibold text-stone-700">Due today <span className="block text-xs font-normal text-stone-500">{method === 'ach' ? 'Bank transfer' : 'Card'}</span></span>
+        <span className="font-semibold text-stone-700">Due today <span className="block text-xs font-normal text-stone-500">{method === 'ach' ? 'Bank transfer (ACH)' : 'Card'}</span></span>
         <span className="text-2xl font-extrabold text-ink-900">{money(pay.total_cents)}</span>
       </div>
       {quote.later.length > 0 && (
         <ul className="border-t border-stone-100 px-5 py-3 text-xs text-stone-500">
-          {quote.later.map((l) => <li key={l.label}>{l.label}{l.amount_cents ? `: ${money(l.amount_cents)}` : ''}</li>)}
+          {quote.later.map((l) => <li key={l.label}>{l.label}{l.amount_cents ? `: ${money(cardPrice(l.amount_cents))} (${money(l.amount_cents)} with ACH discount)` : ''}</li>)}
         </ul>
       )}
       {quote.warnings.map((w) => <p key={w} className="px-5 pb-3 text-xs font-semibold text-warn">{w}</p>)}

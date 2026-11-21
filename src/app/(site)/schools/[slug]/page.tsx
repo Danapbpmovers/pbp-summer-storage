@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { brand, operator, store, warehouse } from '@/config/site'
+import { brand, operator, priceText, store, warehouse } from '@/config/site'
 import { getCampusData, listCampuses } from '@/lib/campus'
-import { money, range, shortDay, day } from '@/lib/format'
+import { range, shortDay, day } from '@/lib/format'
 import { CtaBand, PageHero, campusDates } from '@/components/ui'
 import ReminderForm from '@/components/ReminderForm'
 
@@ -79,7 +79,7 @@ export default async function CampusPage({ params }: { params: Promise<{ slug: s
                 <li><strong>Bring it to any station.</strong> You don’t need to request a pickup to use a station. Crew can’t do in-room pickups. Yellow carts are available at Res-Life offices.</li>
                 <li><strong>We log and photograph each item.</strong> The photos show up in your account.</li>
               </ol>
-              <p>Moving out after the stations close, or living off campus? Request a <strong>curbside pickup</strong> in your account at least 3 days ahead. It’s free during peak move-out, and {fee('pickup_nonpeak') ? `${money(fee('pickup_nonpeak')!.amount_cents)} on other dates` : 'a fee applies on other dates'}. Off-campus pickups must be within about {c.service_radius_miles} mile of campus.</p>
+              <p>Moving out after the stations close, or living off campus? Request a <strong>curbside pickup</strong> in your account at least 3 days ahead. It’s free during peak move-out, and {fee('pickup_nonpeak') ? `${priceText(fee('pickup_nonpeak')!.amount_cents)} on other dates` : 'a fee applies on other dates'}. Off-campus pickups must be within about {c.service_radius_miles} mile of campus.</p>
               <p>Need it back before {dates.earlyBefore}? Mark <strong>early withdrawal</strong> when you book.</p>
             </div>
           </div>
@@ -110,7 +110,7 @@ export default async function CampusPage({ params }: { params: Promise<{ slug: s
             <h3>Living on campus</h3>
             <p>Pick up your things at a Move-In Station near your new residence hall, anytime during or after your scheduled window while the station is open. On-campus delivery is <strong>free during peak move-in ({dates.peakMoveIn}), 9am–5pm</strong>. Other dates follow the standard delivery fees.</p>
             <h3>Living off campus</h3>
-            <p>Request a date and time <strong>by {dates.offcampusDeadline}</strong>. Off-campus delivery is {fee('offcampus_delivery') ? money(fee('offcampus_delivery')!.amount_cents) : 'a flat fee'} from 9am to 5pm. No housing assignment yet? Book now and add your address later.</p>
+            <p>Request a date and time <strong>by {dates.offcampusDeadline}</strong>. Off-campus delivery is {fee('offcampus_delivery') ? priceText(fee('offcampus_delivery')!.amount_cents) : 'a flat fee'} from 9am to 5pm. No housing assignment yet? Book now and add your address later.</p>
           </div>
         </div>
         <div>
@@ -132,7 +132,7 @@ export default async function CampusPage({ params }: { params: Promise<{ slug: s
         </div>
       </section>
 
-      <CtaBand title={`Ready to book ${c.short_name} storage?`} body="It takes about five minutes, and there’s no deposit." href={`/book?campus=${c.slug}`} cta={`Start booking for ${c.short_name}`} />
+      <CtaBand title={`Ready to book ${c.short_name} storage?`} body="It takes about five minutes." href={`/book?campus=${c.slug}`} cta={`Start booking for ${c.short_name}`} />
     </>
   )
 }

@@ -8,8 +8,8 @@
 
 import type { CampusData } from '@/lib/types'
 
-// Amounts are the actual published prices, which is what bank transfer (ACH) pays.
-// Card prices are derived (+3%) at display and checkout time; see payments in config/site.ts.
+// Amounts are the ACH prices (what bank transfer pays). The listed card price is +3%,
+// and the difference is presented as the ACH discount; see payments in config/site.ts.
 
 const items: [string, string, number, string?][] = [
   // [category, name, cents, note]

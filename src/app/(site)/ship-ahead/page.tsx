@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { brand, warehouse } from '@/config/site'
+import { brand, priceText, warehouse } from '@/config/site'
 import { defaultCampusSlug, getCampusData } from '@/lib/campus'
-import { money } from '@/lib/format'
 import { CtaBand, PageHero, campusDates } from '@/components/ui'
 
 export const revalidate = 300
@@ -20,7 +19,7 @@ export default async function ShipAhead() {
   return (
     <>
       <PageHero eyebrow="Ship Ahead" title="Arrive in Boston to everything already waiting"
-        intro={`Ship your boxes to our warehouse before you arrive. We receive them, store them for up to a month and deliver when you get to campus${fee ? `, for ${money(fee.amount_cents)} per item` : ''}.`}>
+        intro={`Ship your boxes to our warehouse before you arrive. We receive them, store them for up to a month and deliver when you get to campus${fee ? `, for ${priceText(fee.amount_cents)} per item` : ''}.`}>
         <Link href={`/book?campus=${d.campus.slug}&service=ship_ahead`} className="btn-primary">Start a Ship Ahead order</Link>
       </PageHero>
       <section className="wrap grid gap-10 py-14 lg:grid-cols-[1.4fr_1fr]">
@@ -37,8 +36,8 @@ export default async function ShipAhead() {
           <p>For the fall semester, items must reach the warehouse <strong>by {dates.shipAheadArrival}</strong> for delivery during move-in. At other times of year, they must arrive 7 days before your requested delivery date.</p>
           <h2>Pricing</h2>
           <ul>
-            {fee && <li>{money(fee.amount_cents)} per item. That includes receiving, up to one month of storage and weekday curbside delivery.</li>}
-            {over && <li>{money(over.amount_cents)} extra per item over 50 lb or larger than 20×20×20 in.</li>}
+            {fee && <li>{priceText(fee.amount_cents)} per item. That includes receiving, up to one month of storage and weekday curbside delivery.</li>}
+            {over && <li>{priceText(over.amount_cents)} extra per item over 50 lb or larger than 20×20×20 in.</li>}
           </ul>
         </div>
         <aside className="lg:pt-10">

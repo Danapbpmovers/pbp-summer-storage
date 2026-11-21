@@ -99,7 +99,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                 {(charges ?? []).map((c) => (
                   <tr key={c.id}>
                     <td className="whitespace-nowrap">{shortDay(c.created_at)}</td>
-                    <td>{c.description}<span className="block text-xs text-stone-500">{c.payment_method === 'card' ? 'Card price' : c.payment_method === 'ach' ? 'Bank transfer' : ''}</span></td>
+                    <td>{c.description}<span className="block text-xs text-stone-500">{c.payment_method === 'card' ? 'Card' : c.payment_method === 'ach' ? 'Bank transfer, ACH discount applied' : ''}</span></td>
                     <td className="capitalize">{c.status}</td>
                     <td className="text-right font-semibold">{money(c.amount_cents)}{c.refunded_cents ? <span className="block text-xs text-ok">−{money(c.refunded_cents)} refunded</span> : null}</td>
                   </tr>

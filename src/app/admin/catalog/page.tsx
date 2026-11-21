@@ -18,10 +18,10 @@ export default async function AdminCatalog({ searchParams }: { searchParams: Pro
     <form action={savePrice} className="grid grid-cols-[1fr_100px_auto_auto] items-center gap-2 border-b border-stone-100 py-2">
       <input type="hidden" name="id" value={id} /><input type="hidden" name="table" value={table} />
       <input name="name" defaultValue={name} className="input min-h-9 py-1" aria-label="Name" />
-      <input name="price" defaultValue={(price / 100).toFixed(2)} inputMode="decimal" className="input min-h-9 py-1 text-right" aria-label="Bank price" />
+      <input name="price" defaultValue={(price / 100).toFixed(2)} inputMode="decimal" className="input min-h-9 py-1 text-right" aria-label="ACH price" />
       <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="active" defaultChecked={active} className="accent-ink-900" />On</label>
       <button className="btn-outline btn-sm">Save</button>
-      <span className="col-span-4 -mt-1 text-xs text-stone-500">Card price {money(cardPrice(price))}</span>
+      <span className="col-span-4 -mt-1 text-xs text-stone-500">Listed (card) price {money(cardPrice(price))}</span>
     </form>
   )
   return (
@@ -30,7 +30,7 @@ export default async function AdminCatalog({ searchParams }: { searchParams: Pro
         <h1 className="h2">Prices</h1>
         <form className="flex gap-2"><select name="campus" defaultValue={campus.slug} className="input">{campuses!.map((c) => <option key={c.id} value={c.slug}>{c.name}</option>)}</select><button className="btn-outline btn-sm">Go</button></form>
       </div>
-      <p className="mt-2 text-stone-600">Enter bank-transfer (actual) prices. The card price (+3%) is calculated automatically. Changes go live on the site within a few minutes.</p>
+      <p className="mt-2 text-stone-600">Enter the ACH price (what bank transfer pays). The listed price customers see is the card price, calculated automatically as ACH + 3%, and the site shows the difference as the ACH discount. Changes go live on the site within a few minutes.</p>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="panel">
           <h2 className="h3">Catalog</h2>

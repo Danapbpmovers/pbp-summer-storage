@@ -72,7 +72,7 @@ export default async function AdminOrder({ params }: { params: Promise<{ id: str
               <tbody>
                 {(charges ?? []).map((c) => (
                   <tr key={c.id}>
-                    <td>{c.description}<span className="block text-xs text-stone-500">{c.payment_method ?? '—'}{c.card_fee_cents ? ` · incl. ${money(c.card_fee_cents)} card price difference` : ''}</span></td>
+                    <td>{c.description}<span className="block text-xs text-stone-500">{c.payment_method ?? '—'}{c.card_fee_cents ? ` · incl. ${money(c.card_fee_cents)} listed card price over ACH` : ''}</span></td>
                     <td className="capitalize">{c.status}</td>
                     <td className="text-right">{money(c.amount_cents)}{c.refunded_cents ? <span className="block text-xs text-ok">−{money(c.refunded_cents)}</span> : null}</td>
                     <td>
@@ -95,7 +95,7 @@ export default async function AdminOrder({ params }: { params: Promise<{ id: str
                 {(fees ?? []).map((f) => <option key={f.code} value={f.code}>{f.name}: {money(f.amount_cents)}{f.unit !== 'flat' ? ` ${f.unit.replace('_', ' ')}` : ''}</option>)}
               </select>
               <input name="description" placeholder="Description (shown to customer)" required className="input" />
-              <input name="amount" placeholder="$ (bank price)" required inputMode="decimal" className="input" />
+              <input name="amount" placeholder="$ (ACH price)" required inputMode="decimal" className="input" />
               <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="charge_now" className="h-4 w-4 accent-ink-900" disabled={!acct.stripe_customer_id} />Charge saved payment method now{!acct.stripe_customer_id && ' (none on file)'}</label>
               <button className="btn-dark btn-sm sm:col-span-2 sm:justify-self-start">Add charge</button>
             </form>
