@@ -99,7 +99,12 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ s: { ...s, password: '' }, step })) } catch { /* ignore */ }
   }, [s, step])
 
-  useEffect(() => { headingRef.current?.focus() }, [step])
+  // Move focus to the new step's heading for screen readers, but not on first load.
+  const firstStep = useRef(true)
+  useEffect(() => {
+    if (firstStep.current) { firstStep.current = false; return }
+    headingRef.current?.focus({ preventScroll: true })
+  }, [step])
 
   const set = <K extends keyof WizardState>(k: K, v: WizardState[K]) => setS((cur) => ({ ...cur, [k]: v }))
   const setStudent = (k: keyof WizardState['student'], v: string) => setS((cur) => ({ ...cur, student: { ...cur.student, [k]: v } }))
@@ -207,7 +212,7 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
 
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <div>
-          <h1 ref={headingRef} tabIndex={-1} className="h2 outline-none">{[
+          <h1 ref={headingRef} tabIndex={-1} className="h2 outline-none focus-visible:outline-none">{[
             'Where are you storing?', 'Who’s booking?', s.service === 'storage' ? 'What are you storing?' : 'What are you shipping ahead?', 'Protect your things', 'Drop-off and return', 'Review and pay',
           ][step]}</h1>
 
