@@ -3,6 +3,7 @@ import { serverClient } from '@/lib/supabase/server'
 import { signPhotos } from '@/lib/photos'
 import { money, shortDay } from '@/lib/format'
 import { updateClaim } from '../actions'
+import { ClaimKind } from '@/components/ClaimKind'
 
 const statuses = ['submitted', 'reviewing', 'approved', 'denied', 'paid'] as const
 
@@ -33,7 +34,7 @@ export default async function AdminClaims({ searchParams }: { searchParams: Prom
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm text-stone-500">Filed {shortDay(c.created_at)} · <Link href={`/admin/orders/${o.id}`} className="font-semibold text-pbp-700 underline">#{o.order_number}</Link> {o.student_first_name} {o.student_last_name}</p>
-                  <p className="mt-1 font-semibold text-ink-900">{c.description}</p>
+                  <p className="mt-1.5 flex flex-wrap items-start gap-2"><ClaimKind kind={c.kind} /><span className="font-semibold text-ink-900">{c.description}</span></p>
                   <p className="mt-1 text-sm text-stone-600">
                     {it ? `${it.label_code} · ${it.actual_name ?? it.name}` : 'No specific item'} · claimed {c.amount_claimed_cents ? money(c.amount_claimed_cents) : '—'} · coverage ${(o.declared_value_cents / 100).toLocaleString()}
                     {o.delivered_at ? ` · delivered ${shortDay(o.delivered_at)}` : ''}

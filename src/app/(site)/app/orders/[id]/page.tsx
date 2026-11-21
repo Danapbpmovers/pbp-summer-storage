@@ -6,6 +6,7 @@ import { day, money, shortDay } from '@/lib/format'
 import { orderStatusLabel, orderStatusSteps } from '@/lib/types'
 import { PayButtons, DeliveryRequestForm, ClaimForm } from '@/components/portal'
 import { signPhotos } from '@/lib/photos'
+import { ClaimKind } from '@/components/ClaimKind'
 
 export default async function OrderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ paid?: string; pending?: string; cancelled?: string; requested?: string }> }) {
   const [{ id }, sp, sb] = await Promise.all([params, searchParams, serverClient()])
@@ -119,7 +120,10 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                   {claims.map((c) => (
                     <li key={c.id} className="panel">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="font-semibold text-ink-900">{c.description}</p>
+                        <div>
+                          <ClaimKind kind={c.kind} />
+                          <p className="mt-1.5 font-semibold text-ink-900">{c.description}</p>
+                        </div>
                         <span className="badge shrink-0 bg-sand-100 capitalize text-ink-800">{c.status}</span>
                       </div>
                       <p className="mt-1 text-sm text-stone-600">Filed {shortDay(c.created_at)}{c.amount_claimed_cents ? ` · claimed ${money(c.amount_claimed_cents)}` : ''}{c.approved_cents != null ? ` · approved ${money(c.approved_cents)}` : ''}</p>

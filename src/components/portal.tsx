@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { payments } from '@/config/site'
 import { money } from '@/lib/format'
 import type { CalendarWindow } from '@/lib/types'
@@ -147,15 +147,47 @@ export function ClaimForm({ orderId, items, deadline, windowDays }: { orderId: s
       </div>
       <div><label htmlFor="cl-desc" className="label">What happened?</label><textarea id="cl-desc" rows={4} className="input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Describe the damage or what’s missing, and what was inside." /></div>
       <div><label htmlFor="cl-amt" className="label">Value or repair cost ($)</label><input id="cl-amt" inputMode="decimal" className="input max-w-[200px]" value={amount} onChange={(e) => setAmount(e.target.value)} /><p className="hint">We may ask for a receipt or repair estimate.</p></div>
-      <div><label htmlFor="cl-photos" className="label">Photos {kind === 'damaged' ? '(required)' : '(optional)'}</label>
-        <input id="cl-photos" type="file" accept="image/*" multiple className="block text-sm" onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 6))} />
-        <p className="hint">Up to 6 photos: the damage, the box and the label.</p>
-      </div>
+      <PhotoPicker label={`Photos ${kind === 'damaged' ? '(required)' : '(optional)'}`} files={files} setFiles={setFiles} max={6} hint="The damage, the box and the label. Up to 6 photos." />
       {err && <p role="alert" className="text-sm font-semibold text-red-700">{err}</p>}
       <div className="flex gap-2">
         <button className="btn-dark" disabled={busy}>{busy ? 'Sending…' : 'Submit claim'}</button>
         <button type="button" className="btn-outline" onClick={() => setOpen(false)}>Cancel</button>
       </div>
     </form>
+  )
+}
+
+/** Photo picker with thumbnails, remove buttons and an add tile. Keeps previously chosen photos when adding more. */
+export function PhotoPicker({ label, files, setFiles, max, hint }: { label: string; files: File[]; setFiles: (f: File[]) => void; max: number; hint?: string }) {
+  const [urls, setUrls] = useState<string[]>([])
+  useEffect(() => {
+    const u = files.map((f) => URL.createObjectURL(f))
+    setUrls(u)
+    return () => u.forEach((x) => URL.revokeObjectURL(x))
+  }, [files])
+  return (
+    <fieldset>
+      <legend className="label">{label}</legend>
+      <ul className="flex flex-wrap gap-3" aria-label="Chosen photos">
+        {files.map((f, i) => (
+          <li key={`${f.name}-${f.lastModified}-${i}`} className="relative">
+            {urls[i] && <img src={urls[i]} alt={`Photo ${i + 1}: ${f.name}`} className="h-24 w-24 rounded-xl border border-stone-200 object-cover" />}
+            <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label={`Remove photo ${i + 1}`}
+              className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-ink-900 text-base font-bold leading-none text-white shadow ring-2 ring-white hover:bg-red-700">×</button>
+          </li>
+        ))}
+        {files.length < max && (
+          <li>
+            <label className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-stone-300 text-sm font-semibold text-stone-600 hover:border-ink-700 hover:text-ink-900 focus-within:ring-2 focus-within:ring-gold-400">
+              <span className="text-2xl leading-none" aria-hidden>+</span>
+              {files.length ? 'Add more' : 'Add photos'}
+              <input type="file" accept="image/*" multiple className="sr-only"
+                onChange={(e) => { setFiles([...files, ...Array.from(e.target.files ?? [])].slice(0, max)); e.target.value = '' }} />
+            </label>
+          </li>
+        )}
+      </ul>
+      <p className="hint mt-2">{hint} {files.length > 0 && `${files.length} of ${max} chosen.`}</p>
+    </fieldset>
   )
 }

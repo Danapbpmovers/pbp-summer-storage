@@ -26,6 +26,7 @@ alter table public.claims add column if not exists resolution text;
 alter table public.claims add column if not exists reviewed_by uuid references public.profiles;
 alter table public.claims add column if not exists updated_at timestamptz not null default now();
 alter table public.claims add column if not exists filed_by uuid references public.profiles;
+alter table public.claims add column if not exists kind text not null default 'damaged' check (kind in ('damaged', 'missing'));
 create index if not exists claims_status_idx on public.claims (status, created_at);
 
 -- Claims are created by the server after it checks access and the claim window,

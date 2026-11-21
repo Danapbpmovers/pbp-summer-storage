@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
   const { data: claim, error } = await db.from('claims').insert({
     order_id: order.id, customer_id: order.customer_id, filed_by: access.userId, order_item_id: itemId,
-    description: `[${kind}] ${description}`, amount_claimed_cents: Number.isFinite(amount) && amount > 0 ? amount : null, photos,
+    kind, description, amount_claimed_cents: Number.isFinite(amount) && amount > 0 ? amount : null, photos,
   }).select('id').single()
   if (error || !claim) return NextResponse.json({ error: 'Couldn’t file the claim.' }, { status: 500 })
 
