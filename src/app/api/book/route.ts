@@ -27,6 +27,8 @@ export async function POST(req: Request) {
   if (!s.terms) return bad('Please accept the terms.')
   if (s.service !== 'storage' && s.service !== 'ship_ahead') return bad('Choose a service.')
   const method = s.pay_method === 'card' ? 'card' : 'ach'
+  const anyItems = s.service === 'storage' ? Object.values(s.items ?? {}).some((n) => Number(n) > 0) : Number(s.ship_ahead_count) > 0
+  if (!anyItems) return bad(s.service === 'storage' ? 'Add at least one item.' : 'Enter how many items you’ll ship.')
 
   const data = await getCampusData(str(s.campus, 80))
   if (!data || !data.campus.bookable || data.campus.id.startsWith('seed-')) return bad('That school isn’t open for booking.')
@@ -75,19 +77,19 @@ export async function POST(req: Request) {
     if (!p.ok) return bad(p.error)
     promo = p.promo
   }
-  const reserveOnly = s.service === 'storage' && !!s.reserve_only
-  const items = reserveOnly ? Object.fromEntries(Object.entries(s.items ?? {}).filter(([id]) => data.catalog.find((c) => c.id === id)?.category === 'supplies')) : (s.items ?? {})
+  const items = s.items ?? {}
   const q = quote(data, {
     service: s.service, items, ship_ahead_count: Number(s.ship_ahead_count) || 0, ship_ahead_oversize: Number(s.ship_ahead_oversize) || 0,
     declared_value_cents: Number(s.declared_value_cents) || 0,
-    dropoff_method: reserveOnly || s.service !== 'storage' ? 'undecided' : s.dropoff_method,
+    dropoff_method: s.service !== 'storage' ? 'undecided' : s.dropoff_method,
     dropoff_date: s.dropoff_date || null, return_method: s.return_method,
   }, promo)
   const pay = applyPaymentMethod(q, method, payments)
+  if (q.item_count === 0 || pay.total_cents <= 0) return bad(s.service === 'storage' ? 'Add at least one item.' : 'Enter how many items you’ll ship.')
 
   // ---------------------------------------------------------------- capacity
   let slotId: string | null = null
-  if (!reserveOnly && s.service === 'storage' && s.dropoff_slot_id) {
+  if (s.service === 'storage' && s.dropoff_slot_id) {
     const slot = (data.slots ?? []).find((x) => x.id === s.dropoff_slot_id)
     if (!slot) return bad('That drop-off time is no longer available.')
     const { data: ok } = await db.rpc('book_slot', { p_slot: slot.id })
@@ -102,12 +104,12 @@ export async function POST(req: Request) {
     campus_id: data.campus.id,
     service: s.service,
     season,
-    status: reserveOnly || pay.total_cents === 0 ? 'reserved' : 'pending_payment',
+    status: 'pending_payment',
     booked_by: s.booked_by === 'parent' ? 'parent' : 'student',
     student_first_name: str(s.student.first_name), student_last_name: str(s.student.last_name),
     student_email: s.student.email.toLowerCase(), student_phone: str(s.student.phone, 30), student_school_id: str(s.student.student_id, 40),
     declared_value_cents: q.coverage.declared_cents,
-    dropoff_method: reserveOnly || s.service !== 'storage' ? 'undecided' : s.dropoff_method,
+    dropoff_method: s.service !== 'storage' ? 'undecided' : s.dropoff_method,
     dropoff_address: str(s.dropoff_address),
     return_method: ['on_campus', 'off_campus', 'ship', 'extended'].includes(s.return_method) ? s.return_method : 'undecided',
     return_hall: str(s.return_hall, 120), return_address: str(s.return_address),
@@ -130,7 +132,7 @@ export async function POST(req: Request) {
   }
   if (rows.length) await db.from('order_items').insert(rows)
 
-  if (!reserveOnly && s.service === 'storage' && s.dropoff_method !== 'undecided') {
+  if (s.service === 'storage' && s.dropoff_method !== 'undecided') {
     await db.from('appointments').insert({
       order_id: order.id, kind: s.dropoff_method === 'station' ? 'station_dropoff' : 'curbside_pickup', slot_id: slotId,
       location_id: s.dropoff_method === 'station' ? s.dropoff_location_id || null : null,
@@ -145,11 +147,6 @@ export async function POST(req: Request) {
   // ---------------------------------------------------------------- payment
   const orderUrl = newAccount ? `${siteUrl}/book/thanks?order=${order.order_number}` : `${siteUrl}/app/orders/${order.id}`
   const summary = q.lines.map((l) => `• ${l.label}${l.qty > 1 ? ` × ${l.qty}` : ''}: ${money(l.total_cents)}`).join('\n')
-
-  if (reserveOnly || pay.total_cents === 0) {
-    await sendEmail(db, { customerId: userId, orderId: order.id, template: 'booking_reserved', to: accountEmail!, subject: `Reserved: order #${order.order_number}`, body: `Thanks! Your ${data.campus.short_name} storage is reserved (order #${order.order_number}).\n\nLog in before move-out to add your items and choose your drop-off. ${siteUrl}/app` })
-    return NextResponse.json({ redirect: orderUrl })
-  }
 
   const { data: charge } = await db.from('charges').insert({
     order_id: order.id, customer_id: userId, description: `Order #${order.order_number} – ${s.service === 'storage' ? 'storage' : 'Ship Ahead'}`,

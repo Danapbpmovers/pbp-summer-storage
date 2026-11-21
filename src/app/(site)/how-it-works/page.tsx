@@ -15,7 +15,7 @@ export default async function HowItWorks() {
   const d = (await getCampusData(defaultCampusSlug))!
   const dates = campusDates(d)
   const steps = [
-    { t: 'Book online', b: 'Choose your school, add the items you’re storing and see your total as you go. Students or parents can book. Not sure what you’re storing yet? Reserve now and add items later.' },
+    { t: 'Book online', b: 'Choose your school, add the items you’re storing and see your total as you go. Students or parents can book. Forgot something? Add more items from your account later.' },
     { t: 'Get boxes and pack', b: `Add boxes, tape and mattress bags when you book, or buy them at ${operator}, ${store.street}, or at the campus stations. Follow the packing guidelines: tape boxes top and bottom, bag mattresses, box TVs and keep boxes under 50 lb.` },
     { t: 'Label each item', b: 'Print your QR labels from your account and stick one on each item. No printer? Write your name, phone number and student ID on each one, and our crew will label it at drop-off.' },
     { t: 'Drop off or schedule a pickup', b: `From ${dates.stations}, bring things to a Move-Out Station outside your residence hall. Moving out on another date or living off campus? Book a curbside pickup at least 3 days ahead.` },

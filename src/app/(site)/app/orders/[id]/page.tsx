@@ -6,9 +6,10 @@ import { day, money, shortDay } from '@/lib/format'
 import { orderStatusLabel, orderStatusSteps } from '@/lib/types'
 import { PayButtons, DeliveryRequestForm, ClaimForm } from '@/components/portal'
 import { signPhotos } from '@/lib/photos'
+import { ADDABLE_STATUSES } from '@/lib/orders'
 import { ClaimKind } from '@/components/ClaimKind'
 
-export default async function OrderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ paid?: string; pending?: string; cancelled?: string; requested?: string }> }) {
+export default async function OrderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ paid?: string; pending?: string; cancelled?: string; requested?: string; added?: string }> }) {
   const [{ id }, sp, sb] = await Promise.all([params, searchParams, serverClient()])
   const { data: o } = await sb!.from('orders').select('*, campuses(slug, name, short_name)').eq('id', id).maybeSingle()
   if (!o) notFound()
@@ -42,6 +43,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
         <span className="badge bg-ink-900 px-3 py-1 text-sm text-white">{orderStatusLabel(o.status)}</span>
       </div>
 
+      {sp.added && <p role="status" className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-900">Items added. Print labels for the new items below.</p>}
       {sp.paid && <p role="status" className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-900">Thank you, your payment was received. Bank transfers can take a few days to clear.</p>}
       {sp.pending && <p role="status" className="mt-5 rounded-xl border border-gold-500/40 bg-gold-100 px-4 py-3 text-ink-900">Your booking is saved. We’ll email a payment link shortly.</p>}
       {sp.cancelled && <p role="status" className="mt-5 rounded-xl border border-gold-500/40 bg-gold-100 px-4 py-3 text-ink-900">Payment wasn’t finished. You can pay below.</p>}
@@ -61,10 +63,13 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
         <section aria-labelledby="items">
           <div className="flex items-center justify-between">
             <h2 id="items" className="h3 text-xl">Items ({items?.length ?? 0})</h2>
-            {!!items?.length && <Link href={`/app/orders/${id}/labels`} className="btn-outline btn-sm">Print labels</Link>}
+            <span className="flex gap-2">
+              {ADDABLE_STATUSES.includes(o.status) && <Link href={`/app/orders/${id}/add`} className="btn-primary btn-sm">Add items</Link>}
+              {!!items?.length && <Link href={`/app/orders/${id}/labels`} className="btn-outline btn-sm">Print labels</Link>}
+            </span>
           </div>
           {!items?.length ? (
-            <p className="mt-3 text-stone-600">No items yet. {o.status === 'reserved' && <Link href={`/book?campus=${campus.slug}`} className="font-semibold text-pbp-700 underline">Add your items</Link>}</p>
+            <p className="mt-3 text-stone-600">No items yet.</p>
           ) : (
             <div className="mt-3 overflow-x-auto rounded-xl border border-stone-200 bg-white">
               <table className="tbl">

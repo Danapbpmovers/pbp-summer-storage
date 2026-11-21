@@ -19,7 +19,6 @@ export interface WizardState {
   marketing_consent: boolean
   terms: boolean
   items: Record<string, number>
-  reserve_only: boolean
   ship_ahead_count: number
   ship_ahead_oversize: number
   declared_value_cents: number
@@ -45,7 +44,7 @@ const blank = (campus: string, bookedBy: 'student' | 'parent', service: 'storage
   student: { first_name: '', last_name: '', email: '', phone: '', student_id: '', class_year: '' },
   parent: { name: '', email: '', phone: '' },
   password: '', referral_source: '', sms_consent: false, marketing_consent: false, terms: false,
-  items: {}, reserve_only: false, ship_ahead_count: 0, ship_ahead_oversize: 0, declared_value_cents: 30000,
+  items: {}, ship_ahead_count: 0, ship_ahead_oversize: 0, declared_value_cents: 30000,
   dropoff_method: service === 'ship_ahead' ? 'undecided' : 'station', dropoff_location_id: '', dropoff_slot_id: '', dropoff_date: '', dropoff_window: '', dropoff_address: '',
   return_method: 'on_campus', return_hall: '', return_address: '', early_withdrawal: false,
   proxy_name: '', proxy_phone: '', notes: '', promo_code: '', pay_method: payments.defaultMethod,
@@ -140,9 +139,9 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
     }
     if (i === 2) {
       const stored = s.service === 'storage' ? q.item_count : s.ship_ahead_count
-      if (!s.reserve_only && stored === 0) e.push(s.service === 'storage' ? 'Add at least one item, or choose “I’m not sure yet”.' : 'Enter how many items you’ll ship.')
+      if (stored === 0) e.push(s.service === 'storage' ? 'Add at least one item.' : 'Enter how many items you’ll ship.')
     }
-    if (i === 4 && s.service === 'storage' && !s.reserve_only) {
+    if (i === 4 && s.service === 'storage') {
       if (s.dropoff_method === 'station') {
         if (!s.dropoff_location_id) e.push('Choose a station.')
         else if (stationSlots.length > 0 && !s.dropoff_slot_id) e.push('Choose a drop-off day.')
@@ -304,11 +303,8 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
               <div className="space-y-6">
                 {s.service === 'storage' ? (
                   <>
-                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-dashed border-stone-300 bg-sand-50 p-4">
-                      <input type="checkbox" className="mt-1 h-5 w-5 accent-ink-900" checked={s.reserve_only} onChange={(e) => set('reserve_only', e.target.checked)} />
-                      <span><span className="font-semibold text-ink-900">I’m not sure yet. Reserve now and I’ll add items later.</span><span className="block text-sm text-stone-600">There’s nothing to pay today, and we’ll remind you to finish before move-out.</span></span>
-                    </label>
-                    {!s.reserve_only && <ItemPicker catalog={data.catalog} items={s.items} setQty={(id, n) => set('items', { ...s.items, [id]: n })} />}
+                    <p className="text-stone-600">Forgot something? You can add more items to your order from your account later.</p>
+                    <ItemPicker catalog={data.catalog} items={s.items} setQty={(id, n) => set('items', { ...s.items, [id]: n })} />
                   </>
                 ) : (
                   <div className="panel max-w-lg space-y-5">
@@ -340,7 +336,7 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
 
             {step === 4 && (
               <div className="space-y-8">
-                {s.service === 'storage' && !s.reserve_only && (
+                {s.service === 'storage' && (
                   <fieldset>
                     <legend className="h3 mb-3">Move-out drop-off</legend>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -455,9 +451,9 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
                 <dl className="grid gap-4 sm:grid-cols-2">
                   <Summary t="School & service" v={`${data.campus.name} · ${s.service === 'storage' ? 'Summer storage' : 'Ship Ahead'}`} onEdit={() => setStep(0)} />
                   <Summary t="Student" v={`${s.student.first_name} ${s.student.last_name} · ${s.student.email}`} onEdit={() => setStep(1)} />
-                  <Summary t="Items" v={s.reserve_only ? 'Reserved, items to be added later' : `${q.item_count} item${q.item_count === 1 ? '' : 's'}`} onEdit={() => setStep(2)} />
+                  <Summary t="Items" v={`${q.item_count} item${q.item_count === 1 ? '' : 's'}`} onEdit={() => setStep(2)} />
                   <Summary t="Coverage" v={`$${(q.coverage.declared_cents / 100).toLocaleString()} declared value`} onEdit={() => setStep(3)} />
-                  {s.service === 'storage' && !s.reserve_only && <Summary t="Drop-off" v={s.dropoff_method === 'station' ? `${stations.find((l) => l.id === s.dropoff_location_id)?.name ?? 'Station'} · ${s.dropoff_date ? shortDay(s.dropoff_date) : 'day TBD'}` : `Curbside · ${s.dropoff_date ? shortDay(s.dropoff_date) : ''} ${s.dropoff_window}`} onEdit={() => setStep(4)} />}
+                  {s.service === 'storage' && <Summary t="Drop-off" v={s.dropoff_method === 'station' ? `${stations.find((l) => l.id === s.dropoff_location_id)?.name ?? 'Station'} · ${s.dropoff_date ? shortDay(s.dropoff_date) : 'day TBD'}` : `Curbside · ${s.dropoff_date ? shortDay(s.dropoff_date) : ''} ${s.dropoff_window}`} onEdit={() => setStep(4)} />}
                   <Summary t="Return" v={{ on_campus: `On campus${s.return_hall ? ` · ${s.return_hall}` : ' · hall TBD'}`, off_campus: `Off campus${s.return_address ? ` · ${s.return_address}` : ' · address TBD'}`, ship: `Ship to ${s.return_address}`, extended: 'Extended storage', undecided: 'Decide later' }[s.return_method]} onEdit={() => setStep(4)} />
                 </dl>
 
@@ -484,7 +480,7 @@ export default function BookingWizard({ campuses, data, initial, signedIn, backe
                 {submitError && <p role="alert" className="max-w-xl rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{submitError}</p>}
 
                 <button type="button" className="btn-primary w-full max-w-xl text-base" disabled={submitting || !backendReady} onClick={submit}>
-                  {submitting ? 'Working…' : s.reserve_only || pay.total_cents === 0 ? 'Reserve my spot' : `Pay ${money(pay.total_cents)} by ${s.pay_method === 'ach' ? 'bank transfer (ACH discount)' : 'card'}`}
+                  {submitting ? 'Working…' : `Pay ${money(pay.total_cents)} by ${s.pay_method === 'ach' ? 'bank transfer (ACH discount)' : 'card'}`}
                 </button>
               </div>
             )}
