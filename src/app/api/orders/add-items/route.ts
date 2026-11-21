@@ -7,7 +7,7 @@ import { newLabelCode } from '@/lib/labels'
 import { ADDABLE_STATUSES } from '@/lib/orders'
 import { sendEmail } from '@/lib/notify'
 import { applyPaymentMethod, quote } from '@/lib/pricing'
-import { stripe, stripeMethodTypes } from '@/lib/stripe'
+import { checkoutMethods, stripe } from '@/lib/stripe'
 import { adminClient } from '@/lib/supabase/server'
 
 // Adds items to an existing order and takes payment for just those items, up front.
@@ -63,17 +63,17 @@ export async function POST(req: Request) {
   const { data: prof } = await db.from('profiles').select('stripe_customer_id').eq('id', order.customer_id).single()
   let customer = prof?.stripe_customer_id as string | null
   if (!customer) {
-    const c = await stripe.customers.create({ email: access.email, metadata: { profile_id: order.customer_id } })
+    const c = await stripe.customers.create({ email: access.email, metadata: { profile_id: order.customer_id } }, { idempotencyKey: `customer-add-${order.customer_id}` })
     customer = c.id
     await db.from('profiles').update({ stripe_customer_id: customer }).eq('id', order.customer_id)
   }
   const checkout = await stripe.checkout.sessions.create({
-    mode: 'payment', customer, payment_method_types: stripeMethodTypes(method),
+    mode: 'payment', customer, ...checkoutMethods(method),
     line_items: [{ quantity: 1, price_data: { currency: 'usd', unit_amount: pay.total_cents, product_data: { name: description, description: method === 'ach' ? 'ACH discount applied' : 'Card' } } }],
     payment_intent_data: { setup_future_usage: 'off_session', metadata: { order_id: order.id, charge_id: charge?.id ?? '' } },
     metadata: { order_id: order.id, charge_id: charge?.id ?? '' },
     success_url: `${back}?added=1&paid=1`, cancel_url: `${back}?cancelled=1`,
-  })
+  }, { idempotencyKey: `checkout-${charge?.id}` })
   await db.from('charges').update({ stripe_checkout_session_id: checkout.id }).eq('id', charge?.id)
   return NextResponse.json({ redirect: checkout.url })
 }

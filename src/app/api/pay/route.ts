@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { payments, siteUrl } from '@/config/site'
 import { orderAccess } from '@/lib/access'
-import { stripe, stripeMethodTypes } from '@/lib/stripe'
+import { checkoutMethods, stripe } from '@/lib/stripe'
 import { adminClient } from '@/lib/supabase/server'
 
 // Starts Stripe Checkout for an open charge. The amount follows dual pricing:
@@ -25,18 +25,18 @@ export async function POST(req: Request) {
   const { data: prof } = await db.from('profiles').select('stripe_customer_id').eq('id', ch.customer_id).single()
   let customer = prof?.stripe_customer_id as string | null
   if (!customer) {
-    const c = await stripe.customers.create({ email: access.email, metadata: { profile_id: ch.customer_id } })
+    const c = await stripe.customers.create({ email: access.email, metadata: { profile_id: ch.customer_id } }, { idempotencyKey: `customer-pay-${ch.customer_id}` })
     customer = c.id
     await db.from('profiles').update({ stripe_customer_id: customer }).eq('id', ch.customer_id)
   }
   const back = `${siteUrl}/app/orders/${ch.order_id}`
   const session = await stripe.checkout.sessions.create({
-    mode: 'payment', customer, payment_method_types: stripeMethodTypes(method),
+    mode: 'payment', customer, ...checkoutMethods(method),
     line_items: [{ quantity: 1, price_data: { currency: 'usd', unit_amount: amount, product_data: { name: ch.description } } }],
     payment_intent_data: { setup_future_usage: 'off_session', metadata: { order_id: ch.order_id, charge_id: ch.id } },
     metadata: { order_id: ch.order_id, charge_id: ch.id },
     success_url: `${back}?paid=1`, cancel_url: `${back}?cancelled=1`,
-  })
+  }, { idempotencyKey: `pay-${ch.id}-${method}-${amount}-${Math.floor(Date.now() / 60000)}` })
   await db.from('charges').update({ stripe_checkout_session_id: session.id }).eq('id', ch.id)
   return NextResponse.json({ url: session.url })
 }

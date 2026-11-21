@@ -95,8 +95,7 @@ export async function addCharge(fd: FormData) {
         const pi = await stripe.paymentIntents.create({
           amount, currency: 'usd', customer: prof.stripe_customer_id, payment_method: pm.id, off_session: true, confirm: true,
           description: `Order #${order.order_number}: ${description}`, metadata: { order_id: orderId, charge_id: charge!.id, source: 'staff' },
-          ...(pm.type === 'us_bank_account' ? { payment_method_types: ['us_bank_account'] } : {}),
-        })
+        }, { idempotencyKey: `staff-charge-${charge!.id}` })
         await db.from('charges').update({ stripe_payment_intent_id: pi.id }).eq('id', charge!.id)
       } catch {
         await db.from('charges').update({ status: 'failed' }).eq('id', charge!.id)
@@ -113,7 +112,7 @@ export async function refundCharge(fd: FormData) {
   const { data: ch } = await db.from('charges').select('*').eq('id', String(fd.get('charge_id'))).single()
   if (!ch?.stripe_payment_intent_id || !stripe) throw new Error('Nothing to refund')
   const amount = Math.min(cents(fd.get('amount')) || ch.amount_cents, ch.amount_cents - ch.refunded_cents)
-  await stripe.refunds.create({ payment_intent: ch.stripe_payment_intent_id, amount })
+  await stripe.refunds.create({ payment_intent: ch.stripe_payment_intent_id, amount }, { idempotencyKey: `refund-${ch.id}-${ch.refunded_cents}-${amount}` })
   await audit(session.userId, 'refund', 'charges', ch.id, { amount })
   revalidatePath(`/admin/orders/${ch.order_id}`)
 }

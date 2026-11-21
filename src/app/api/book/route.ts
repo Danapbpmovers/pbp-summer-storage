@@ -5,7 +5,7 @@ import { getCampusData } from '@/lib/campus'
 import { money } from '@/lib/format'
 import { sendEmail } from '@/lib/notify'
 import { applyPaymentMethod, quote, type Promo } from '@/lib/pricing'
-import { stripe, stripeMethodTypes } from '@/lib/stripe'
+import { checkoutMethods, stripe } from '@/lib/stripe'
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/supabase/env'
 import { adminClient, getSession } from '@/lib/supabase/server'
 import type { WizardState } from '@/components/book/BookingWizard'
@@ -162,7 +162,7 @@ export async function POST(req: Request) {
   const { data: prof } = await db.from('profiles').select('stripe_customer_id, first_name, last_name, phone').eq('id', userId).single()
   let customer = prof?.stripe_customer_id as string | null
   if (!customer) {
-    const c = await stripe.customers.create({ email: accountEmail, name: `${prof?.first_name ?? ''} ${prof?.last_name ?? ''}`.trim() || undefined, phone: prof?.phone || undefined, metadata: { profile_id: userId! } })
+    const c = await stripe.customers.create({ email: accountEmail, name: `${prof?.first_name ?? ''} ${prof?.last_name ?? ''}`.trim() || undefined, phone: prof?.phone || undefined, metadata: { profile_id: userId! } }, { idempotencyKey: `customer-book-${userId}` })
     customer = c.id
     await db.from('profiles').update({ stripe_customer_id: customer }).eq('id', userId)
   }
@@ -170,7 +170,7 @@ export async function POST(req: Request) {
   const checkout = await stripe.checkout.sessions.create({
     mode: 'payment',
     customer,
-    payment_method_types: stripeMethodTypes(method),
+    ...checkoutMethods(method),
     line_items: [{
       quantity: 1,
       price_data: {
@@ -184,7 +184,7 @@ export async function POST(req: Request) {
     metadata: { order_id: order.id, charge_id: charge?.id ?? '' },
     success_url: `${orderUrl}${orderUrl.includes('?') ? '&' : '?'}paid=1`,
     cancel_url: `${orderUrl}${orderUrl.includes('?') ? '&' : '?'}cancelled=1`,
-  })
+  }, { idempotencyKey: `checkout-${charge?.id}` })
   await db.from('charges').update({ stripe_checkout_session_id: checkout.id }).eq('id', charge?.id)
   return NextResponse.json({ redirect: checkout.url })
 }

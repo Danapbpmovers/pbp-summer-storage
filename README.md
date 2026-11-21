@@ -42,6 +42,12 @@ Stripe (Checkout + saved payment methods), Resend (email), Twilio (SMS). Hosted 
 4. **Stripe (your existing account):** add `STRIPE_SECRET_KEY`. Enable **ACH Direct Debit** (us_bank_account) under
    Payment methods. Add a webhook to `https://<your-domain>/api/stripe/webhook` with the events listed at the top of
    `src/app/api/stripe/webhook/route.ts`, and put its signing secret in `STRIPE_WEBHOOK_SECRET`.
+   - **Use a restricted key** (`rk_…`) instead of the full secret key. Permissions needed: Checkout Sessions
+     (write), Customers (write), PaymentIntents (write), PaymentMethods (read), Refunds (write). Mark
+     `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` as **Sensitive** in Vercel.
+   - **Lock each price tier** with two Payment Method Configurations (Settings → Payments → Payment methods):
+     one with only ACH Direct Debit (`STRIPE_PMC_ACH`), one with cards and wallets but not ACH
+     (`STRIPE_PMC_CARD`). Without them the site falls back to an explicit card / bank list.
 5. **Email / SMS (optional):** `RESEND_API_KEY`, and for texts `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY_SID`,
    `TWILIO_API_KEY_SECRET`, and `TWILIO_MESSAGING_SERVICE_SID` (or `TWILIO_FROM_NUMBER`). Texts go only to customers
    who opted in; ones written 9pm–8am Eastern are scheduled for 8:05am when a Messaging Service is set. Without keys,
