@@ -128,7 +128,7 @@ export default async function CampusPage({ params }: { params: Promise<{ slug: s
       <section className="wrap pb-6">
         <div className="card">
           <h2 className="h3">Need boxes, or storing during the summer?</h2>
-          <p className="mt-2 text-stone-600">Storage customers can pick up free boxes and tape at {operator}, {store.street}, 6 days a week, or ask us to deliver supplies for a small fee. For urgent storage, drop off there 7 days a week, year round.</p>
+          <p className="mt-2 text-stone-600">Add boxes, tape and mattress bags to your order, or buy them at {operator}, {store.street}, or at the Move-Out Stations. We can also deliver supplies. For urgent storage, drop off there 7 days a week, year round.</p>
         </div>
       </section>
 

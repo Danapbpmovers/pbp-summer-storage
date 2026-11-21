@@ -20,6 +20,7 @@ export function Stepper({ value, onChange, label }: { value: number; onChange: (
 }
 
 const icons: Record<ItemCategory, string> = {
+  supplies: 'M4 9h16v11H4zM8 9V5h8v4M4 13h16',
   boxes: 'M4 8l8-4 8 4v8l-8 4-8-4zM4 8l8 4 8-4M12 12v8',
   bags: 'M6 8h12l-1 12H7zM9 8V6a3 3 0 0 1 6 0v2',
   bins: 'M4 7h16v4H4zM5 11h14v8H5zM10 14h4',

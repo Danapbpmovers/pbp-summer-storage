@@ -17,7 +17,7 @@ export function faqGroups(d: { deliveryDeadline: string; fallWindow: string; pea
     },
     {
       id: 'boxes', title: 'Boxes & supplies', items: [
-        { q: 'Where do I get boxes and tape?', a: `Storage customers get free boxes and tape at ${operator}, 1089 Commonwealth Ave, Boston. Boxes are also sold at the on-campus Move-Out Stations during move-out week, and we can deliver supplies for a small fee.` },
+        { q: 'Where do I get boxes and tape?', a: `Add boxes, tape and mattress bags to your order when you book. You can also buy them at ${operator}, 1089 Commonwealth Ave, Boston, or at the on-campus Move-Out Stations during move-out week.` },
       ],
     },
     {

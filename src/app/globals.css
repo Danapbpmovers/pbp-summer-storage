@@ -66,21 +66,3 @@ body { background: #fff; color: #292524; -webkit-font-smoothing: antialiased; }
   .no-print { display: none !important; }
   body { background: #fff; }
 }
-
-/* ---------- UI options (preview at /preview/a, /preview/b, /preview/c) ---------- */
-@theme { --font-serif: "Fraunces", ui-serif, Georgia, serif; }
-
-/* B · Bold Move-Out: tighter corners, heavier type, high contrast */
-[data-look="b"] { --radius-card: 0.6rem; }
-[data-look="b"] .h2, [data-look="b"] h2 { text-transform: uppercase; letter-spacing: -0.01em; font-weight: 900; }
-[data-look="b"] main .btn-primary, [data-look="b"] main .btn-dark, [data-look="b"] main .btn-outline { border-radius: 9999px; text-transform: uppercase; letter-spacing: .04em; font-size: 14px; font-weight: 800; }
-[data-look="b"] .card { border-width: 2px; border-color: #e7e5e4; box-shadow: none; }
-
-/* C · Fresh & Light: editorial serif headings, PBP teal leads, generous radius */
-[data-look="c"] { --radius-card: 1.75rem; }
-[data-look="c"] .h2, [data-look="c"] .h3, [data-look="c"] h2 { font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.01em; }
-[data-look="c"] .btn-primary { background: var(--color-pbp-700); color: #fff; }
-[data-look="c"] .btn-primary:hover { background: var(--color-pbp-600); }
-[data-look="c"] .btn-dark { background: var(--color-ink-900); }
-[data-look="c"] .eyebrow { color: var(--color-pbp-700); }
-[data-look="c"] .card { border-color: #eeeae4; box-shadow: 0 10px 30px -18px rgba(46,26,18,.25); }

@@ -27,7 +27,7 @@ export interface Line {
   qty: number
   unit_cents: number
   total_cents: number
-  kind: 'item' | 'ship_ahead' | 'coverage' | 'fee' | 'discount'
+  kind: 'item' | 'supply' | 'ship_ahead' | 'coverage' | 'fee' | 'discount'
   ref?: string
 }
 
@@ -70,14 +70,18 @@ export function quote(data: CampusData, cart: CartInput, promo?: Promo | null): 
   const warnings: string[] = []
   let itemCount = 0
 
-  if (cart.service === 'storage') {
-    for (const item of data.catalog) {
-      const qty = Math.max(0, Math.min(99, Math.floor(cart.items[item.id] ?? 0)))
-      if (!qty || !item.active) continue
-      itemCount += qty
-      lines.push({ label: item.name, qty, unit_cents: item.price_cents, total_cents: qty * item.price_cents, kind: 'item', ref: item.id })
-    }
-  } else {
+  const supplies: Line[] = []
+  for (const item of data.catalog) {
+    const qty = Math.max(0, Math.min(99, Math.floor(cart.items[item.id] ?? 0)))
+    if (!qty || !item.active) continue
+    const isSupply = item.category === 'supplies'
+    // Supplies (boxes, tape, bags for sale) can go with any service; stored items only with storage.
+    if (!isSupply && cart.service !== 'storage') continue
+    const line: Line = { label: item.name, qty, unit_cents: item.price_cents, total_cents: qty * item.price_cents, kind: isSupply ? 'supply' : 'item', ref: item.id }
+    if (isSupply) supplies.push(line)
+    else { itemCount += qty; lines.push(line) }
+  }
+  if (cart.service === 'ship_ahead') {
     const sa = fee(data.fees, 'ship_ahead')
     const count = Math.max(0, Math.min(99, Math.floor(cart.ship_ahead_count)))
     if (sa && count) {
@@ -88,6 +92,8 @@ export function quote(data: CampusData, cart: CartInput, promo?: Promo | null): 
     const big = Math.min(count, Math.max(0, Math.floor(cart.ship_ahead_oversize)))
     if (os && big) lines.push({ label: 'Oversize surcharge', qty: big, unit_cents: os.amount_cents, total_cents: big * os.amount_cents, kind: 'fee', ref: os.code })
   }
+
+  lines.push(...supplies)
 
   // Coverage
   const ins = data.insurance

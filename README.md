@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PackStoreShip — student storage site
 
-## Getting Started
+The new packstoreship.com: Boston student summer storage, Ship Ahead and shipping.
+It runs as The UPS Store 0983 program with PBP Movers, legal entity **Piece by Piece Movers LLC**.
 
-First, run the development server:
+**Stack:** Next.js 15 (App Router) + TypeScript + Tailwind 4, Supabase (Postgres, auth, storage),
+Stripe (Checkout + saved payment methods), Resend (email), Twilio (SMS). Hosted on Vercel.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## What's here
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Area | Routes |
+| --- | --- |
+| Marketing | `/`, `/schools`, `/schools/[slug]`, `/how-it-works`, `/pricing` (live calculator), `/ship-ahead`, `/shipping`, `/for-parents`, `/packing-guidelines`, `/faq`, `/about`, `/contact`, `/employment`, `/reviews`, `/terms`, `/privacy` (drafts) |
+| Booking | `/book`: 6 steps (school → you → items → coverage → schedule → review & pay), sticky live total, student/parent toggle, “reserve now, add items later”, saved progress |
+| Customer | `/app` (orders), `/app/orders/[id]` (timeline, items, charges, pay, request delivery), `/app/orders/[id]/labels` (QR labels to print), `/app/settings` (share with a parent or student) |
+| Staff | `/admin` (overview + open owner questions), `/admin/orders` (search, status, delivery hold, intake with weight → overweight fee, add charge / charge saved card, refunds), `/admin/catalog` (prices), `/admin/calendar` (dates + slot capacity), `/api/admin/export` (CSV) |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Pricing rules
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Dual pricing (Massachusetts):** stored prices are the actual prices and are what **bank transfer (ACH)** pays.
+  **Card** pays +3%, shown side by side everywhere. Set in `src/config/site.ts` → `payments`.
+- Prices, fees, coverage, dates, stations and capacity are all data in Supabase, editable in `/admin` with no deploy.
+- `src/lib/pricing.ts` is the single pricing engine. The browser uses it for the live cart, and the server re-runs it
+  against database prices before charging. It never trusts the browser's total.
+- Boxes and materials are sold: add them in Admin → Prices under “Boxes & supplies to buy”.
 
-## Learn More
+### Branding
 
-To learn more about Next.js, take a look at the following resources:
+`show_ups_affiliation` in `src/config/site.ts` controls every The UPS Store mention. Colors are tokens in
+`src/app/globals.css` (`@theme`). Drop official logo files in `public/` and swap `src/components/Brand.tsx`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Set up
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Supabase:** create a project, then in the SQL editor run `supabase/migrations/0001_schema.sql`, then
+   `0002_seed.sql`. In Auth → URL configuration, set the site URL and add `https://<your-domain>/auth/callback`.
+2. **Env:** copy `.env.example` to `.env.local` and fill in the Supabase URL, anon key and service-role key.
+3. **Make yourself admin:** book once or sign up, then run
+   `update public.profiles set role = 'admin' where email = 'you@…';`
+4. **Stripe (your existing account):** add `STRIPE_SECRET_KEY`. Enable **ACH Direct Debit** (us_bank_account) under
+   Payment methods. Add a webhook to `https://<your-domain>/api/stripe/webhook` with the events listed at the top of
+   `src/app/api/stripe/webhook/route.ts`, and put its signing secret in `STRIPE_WEBHOOK_SECRET`.
+5. **Email / SMS (optional):** `RESEND_API_KEY`, `TWILIO_*`. Without them, messages are recorded in `message_log`.
+6. `npm install && npm run dev`
 
-## Deploy on Vercel
+Without Supabase keys the public site still runs, using the built-in seed catalog in `src/data/seed.ts`.
+Booking, accounts and admin show a “not connected yet” notice.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Editing the seed
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`src/data/seed.ts` is the source for the initial catalog. After changing it, run `npm run gen:seed` to regenerate
+`supabase/migrations/0002_seed.sql`. The SQL is safe to re-run.
+
+## Not built yet (next phases)
+
+Crew phone mode with QR scanning and photo upload (the schema and storage bucket are ready), claims workflow,
+promo-code admin screen (codes work at checkout and are added in SQL for now), message templates, reviews collection,
+UPS rate quotes, Boston College / storagebc.com campus, and migrating accounts from the old site.

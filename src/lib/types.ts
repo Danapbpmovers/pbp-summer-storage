@@ -1,7 +1,8 @@
-export type ItemCategory = 'boxes' | 'bags' | 'bins' | 'appliances' | 'furniture' | 'oversized' | 'sports'
+export type ItemCategory = 'supplies' | 'boxes' | 'bags' | 'bins' | 'appliances' | 'furniture' | 'oversized' | 'sports'
 
 export const categoryLabels: Record<ItemCategory, string> = {
-  boxes: 'Boxes',
+  supplies: 'Boxes & supplies to buy',
+  boxes: 'Storing boxes',
   bags: 'Bags & luggage',
   bins: 'Bins & totes',
   appliances: 'Appliances & electronics',

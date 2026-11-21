@@ -9,14 +9,12 @@ import { Check, Faq, campusDates } from '@/components/ui'
 
 const steps = [
   { n: 1, t: 'Sign up in minutes', b: 'Pick your school, add your items and see your total as you go. No deposit.' },
-  { n: 2, t: 'Pack', b: `Storage customers get free boxes and tape at ${operator} on Comm Ave. Boxes are also sold at campus stations.` },
+  { n: 2, t: 'Pack', b: `Add boxes, tape and mattress bags to your order, or buy them at ${operator} on Comm Ave or at the campus stations.` },
   { n: 3, t: 'Drop off or schedule curbside', b: 'Bring things to a Move-Out Station outside your dorm, or book a curbside pickup. Each item is labeled and photographed.' },
   { n: 4, t: 'We bring it back', b: 'Request fall delivery in your account. Pick up at a Move-In Station near your new hall, or have it delivered off campus.' },
 ]
 
-export type Look = 'a' | 'b' | 'c'
-
-export default async function HomeView({ look = 'a' }: { look?: Look }) {
+export default async function HomeView() {
   const [campuses, bu] = await Promise.all([listCampuses(), getCampusData(defaultCampusSlug)])
   const dates = bu ? campusDates(bu) : null
   const largeBox = bu?.catalog.find((i) => i.name.startsWith('Large Box'))
@@ -24,8 +22,7 @@ export default async function HomeView({ look = 'a' }: { look?: Look }) {
     ['Do I need to pay a deposit?', 'How does move-out work at BU?', 'How do I get my storage back in the fall?', 'What coverage is included?', 'Can a parent book and pay?', 'What can’t I store?'].includes(f.q)) : []
 
   return (
-    <div data-look={look}>
-      {look === 'a' && (
+    <>
       <section className="relative overflow-hidden bg-gradient-to-b from-sand-50 to-white">
         <div aria-hidden className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full bg-gold-100/70 blur-3xl" />
         <div className="wrap relative grid items-center gap-12 py-16 sm:py-24 lg:grid-cols-[1.15fr_1fr]">
@@ -77,54 +74,6 @@ export default async function HomeView({ look = 'a' }: { look?: Look }) {
           </div>
         </div>
       </section>
-      )}
-      {look === 'b' && (
-        <section className="relative overflow-hidden bg-ink-950 text-white">
-          <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'repeating-linear-gradient(45deg,#f5b100 0 2px,transparent 2px 22px)' }} />
-          <div className="wrap relative py-20 sm:py-28">
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-gold-500 px-3 py-1 text-xs font-extrabold uppercase tracking-widest text-ink-950">Move-out {dates?.peakMoveOut ?? ''}</p>
-            <h1 className="max-w-4xl text-[44px] font-black uppercase leading-[0.95] tracking-tight sm:text-7xl lg:text-8xl">
-              Leave the <span className="text-gold-500">heavy lifting</span> to us.
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg text-white/75 sm:text-xl">Summer storage, ship-home and Ship Ahead for Boston students. Bring it to a station outside your dorm, and we’ll take it from there.</p>
-            <div className="mt-9 max-w-2xl text-stone-800"><CampusPicker campuses={campuses} /></div>
-            <dl className="mt-12 grid max-w-3xl grid-cols-2 gap-6 border-t border-white/15 pt-8 sm:grid-cols-4">
-              {[['1986', 'serving Boston students since'], [largeBox ? money(largeBox.price_cents) : '—', 'large box, all summer'], ['$0', 'deposit to sign up'], ['100%', 'solar-powered warehouse']].map(([k, v]) => (
-                <div key={v}><dt className="sr-only">{v}</dt><dd className="text-3xl font-black text-gold-500">{k}</dd><dd className="mt-1 text-sm text-white/60">{v}</dd></div>
-              ))}
-            </dl>
-          </div>
-        </section>
-      )}
-      {look === 'c' && (
-        <section className="bg-[#fbfaf7]">
-          <div className="wrap grid gap-12 py-16 sm:py-24 lg:grid-cols-2 lg:items-center">
-            <div>
-              <p className="mb-5 text-sm font-semibold text-pbp-700">Boston student storage, since {brand.since}</p>
-              <h1 className="font-serif text-[44px] font-semibold leading-[1.05] tracking-tight text-ink-900 sm:text-6xl">
-                Summer, sorted.<br /><span className="italic text-pbp-700">Your stuff, stored.</span>
-              </h1>
-              <p className="mt-6 max-w-lg text-lg text-stone-600">Pack, store and ship for Boston college students. Per-item prices, no deposit, and everything waiting for you in the fall.</p>
-              <div className="mt-8 max-w-lg"><CampusPicker campuses={campuses} /></div>
-              <p className="mt-4 text-sm text-stone-500"><Link href="/pricing" className="font-semibold text-pbp-700 underline underline-offset-4">Estimate my cost</Link> · No deposit · Pay by bank or card</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { k: 'Pack', v: 'Free boxes and tape for storage customers', c: 'bg-pbp-50' },
-                { k: 'Drop off', v: 'Stations outside your residence hall', c: 'bg-gold-100' },
-                { k: 'Store', v: 'Climate-controlled, solar-powered warehouse', c: 'bg-sand-100' },
-                { k: 'Return', v: 'Waiting at a Move-In Station in the fall', c: 'bg-white border border-stone-200' },
-              ].map((x, i) => (
-                <div key={x.k} className={`rounded-3xl p-6 ${x.c} ${i % 2 ? 'translate-y-6' : ''}`}>
-                  <p className="font-serif text-2xl font-semibold text-ink-900">{x.k}</p>
-                  <p className="mt-2 text-sm text-stone-600">{x.v}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* How it works */}
       <section className="wrap py-20" aria-labelledby="how">
         <p className="eyebrow mb-3">How it works</p>
@@ -254,6 +203,6 @@ export default async function HomeView({ look = 'a' }: { look?: Look }) {
           <ReminderForm />
         </div>
       </section>
-    </div>
+    </>
   )
 }

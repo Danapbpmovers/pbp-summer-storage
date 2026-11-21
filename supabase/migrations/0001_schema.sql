@@ -181,13 +181,15 @@ $$;
 
 create function public.is_manager() returns boolean
 language sql stable security definer set search_path = public as $$
-  select public.staff_role() in ('campus_manager', 'admin');
+  select coalesce(public.staff_role() in ('campus_manager', 'admin'), false);
 $$;
 
 create function public.protect_profile() returns trigger
 language plpgsql as $$
 begin
-  if not public.is_manager() and (new.role is distinct from old.role or new.stripe_customer_id is distinct from old.stripe_customer_id) then
+  -- auth.uid() is null for the service role (server code), which may set stripe_customer_id.
+  if auth.uid() is not null and not public.is_manager()
+     and (new.role is distinct from old.role or new.stripe_customer_id is distinct from old.stripe_customer_id) then
     raise exception 'Not allowed';
   end if;
   return new;
@@ -213,6 +215,12 @@ create table public.orders (
   season text not null,
   status public.order_status not null default 'reserved',
   booked_by text not null default 'student' check (booked_by in ('student', 'parent')),
+  student_first_name text not null default '',
+  student_last_name text not null default '',
+  student_email text,
+  student_phone text,
+  student_school_id text,
+  dropoff_address text,
   declared_value_cents int not null default 30000,
   dropoff_method text not null default 'undecided' check (dropoff_method in ('station', 'curbside', 'undecided')),
   return_method text not null default 'undecided' check (return_method in ('on_campus', 'off_campus', 'ship', 'extended', 'undecided')),
@@ -380,6 +388,18 @@ begin
   return coalesce(ok, false);
 end $$;
 revoke execute on function public.book_slot(uuid) from public, anon, authenticated;
+
+create function public.release_slot(p_slot uuid) returns void
+language sql security definer set search_path = public as $$
+  update public.slots set booked = greatest(booked - 1, 0) where id = p_slot;
+$$;
+revoke execute on function public.release_slot(uuid) from public, anon, authenticated;
+
+create function public.use_promo(p_code text) returns void
+language sql security definer set search_path = public as $$
+  update public.promo_codes set uses = uses + 1 where upper(code) = upper(p_code);
+$$;
+revoke execute on function public.use_promo(text) from public, anon, authenticated;
 
 -- ============================================================ row level security
 
