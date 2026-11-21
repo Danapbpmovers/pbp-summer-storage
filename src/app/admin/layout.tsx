@@ -8,7 +8,7 @@ import { isSupabaseConfigured } from '@/lib/supabase/env'
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Staff', robots: { index: false } }
 
-const nav = [['/admin', 'Overview'], ['/admin/orders', 'Orders'], ['/admin/catalog', 'Prices'], ['/admin/calendar', 'Dates & capacity']]
+const nav = [['/admin', 'Overview'], ['/admin/orders', 'Orders'], ['/admin/claims', 'Claims'], ['/admin/catalog', 'Prices'], ['/admin/promos', 'Promo codes'], ['/admin/calendar', 'Dates & capacity'], ['/crew', 'Crew mode']]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   if (!isSupabaseConfigured) return <div className="wrap py-16"><h1 className="h2">Connect Supabase to use staff tools.</h1></div>

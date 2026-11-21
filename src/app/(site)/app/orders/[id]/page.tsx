@@ -4,19 +4,26 @@ import { serverClient } from '@/lib/supabase/server'
 import { getCampusData } from '@/lib/campus'
 import { day, money, shortDay } from '@/lib/format'
 import { orderStatusLabel, orderStatusSteps } from '@/lib/types'
-import { PayButtons, DeliveryRequestForm } from '@/components/portal'
+import { PayButtons, DeliveryRequestForm, ClaimForm } from '@/components/portal'
+import { signPhotos } from '@/lib/photos'
 
 export default async function OrderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ paid?: string; pending?: string; cancelled?: string; requested?: string }> }) {
   const [{ id }, sp, sb] = await Promise.all([params, searchParams, serverClient()])
   const { data: o } = await sb!.from('orders').select('*, campuses(slug, name, short_name)').eq('id', id).maybeSingle()
   if (!o) notFound()
   const campus = o.campuses as { slug: string; name: string; short_name: string }
-  const [{ data: items }, { data: charges }, { data: appts }, data] = await Promise.all([
+  const [{ data: items }, { data: charges }, { data: appts }, { data: claims }, data] = await Promise.all([
     sb!.from('order_items').select('*').eq('order_id', id).order('created_at'),
     sb!.from('charges').select('*').eq('order_id', id).order('created_at'),
     sb!.from('appointments').select('*, locations(name)').eq('order_id', id).order('created_at'),
+    sb!.from('claims').select('*').eq('order_id', id).order('created_at'),
     getCampusData(campus.slug),
   ])
+  const photoUrls = await signPhotos(sb!, 'intake-photos', (items ?? []).flatMap((it) => it.photos ?? []))
+  const claimWindowDays = data?.insurance.claim_window_days ?? 3
+  const deliveredAt = o.delivered_at ? new Date(o.delivered_at) : null
+  const claimDeadline = deliveredAt ? new Date(deliveredAt.getTime() + claimWindowDays * 86400000) : null
+  const canClaim = ['out_for_delivery', 'completed'].includes(o.status) && (!claimDeadline || claimDeadline >= new Date())
   const stepIdx = orderStatusSteps.findIndex((x) => x.status === o.status)
   const deadline = data?.calendar.find((c) => c.key === (o.return_method === 'off_campus' ? 'offcampus_request_deadline' : 'delivery_request_deadline'))
   const delivery = appts?.find((a) => a.kind === 'delivery' && a.status !== 'cancelled')
@@ -67,7 +74,15 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                       <td className="font-mono text-xs">{it.label_code}</td>
                       <td>{it.actual_name ?? it.name}{it.weight_lbs ? <span className="block text-xs text-stone-500">{it.weight_lbs} lb</span> : null}</td>
                       <td className="capitalize">{String(it.status).replace('_', ' ')}</td>
-                      <td>{it.photos?.length ? `${it.photos.length}` : '—'}</td>
+                      <td>
+                        {it.photos?.length ? (
+                          <span className="flex gap-1">
+                            {(it.photos as string[]).slice(0, 3).map((p) => photoUrls[p] && (
+                              <a key={p} href={photoUrls[p]} target="_blank" rel="noreferrer"><img src={photoUrls[p]} alt={`Intake photo of ${it.name}`} className="h-12 w-12 rounded-md object-cover" /></a>
+                            ))}
+                          </span>
+                        ) : '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -95,6 +110,30 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
           {(charges ?? []).filter((c) => c.status === 'open' || c.status === 'failed').map((c) => (
             <PayButtons key={c.id} chargeId={c.id} description={c.description} amountCents={c.amount_cents} method={c.payment_method ?? 'ach'} cardFeeCents={c.card_fee_cents ?? 0} />
           ))}
+
+          {(canClaim || !!claims?.length) && (
+            <div id="claims">
+              <h2 className="h3 mt-10 text-xl">Damage or loss</h2>
+              {!!claims?.length && (
+                <ul className="mt-3 space-y-2">
+                  {claims.map((c) => (
+                    <li key={c.id} className="panel">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-semibold text-ink-900">{c.description}</p>
+                        <span className="badge shrink-0 bg-sand-100 capitalize text-ink-800">{c.status}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-stone-600">Filed {shortDay(c.created_at)}{c.amount_claimed_cents ? ` · claimed ${money(c.amount_claimed_cents)}` : ''}{c.approved_cents != null ? ` · approved ${money(c.approved_cents)}` : ''}</p>
+                      {c.resolution && <p className="mt-2 text-sm text-stone-700">{c.resolution}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {canClaim && (
+                <ClaimForm orderId={id} items={(items ?? []).map((it) => ({ id: it.id, label: `${it.label_code} · ${it.actual_name ?? it.name}` }))}
+                  deadline={claimDeadline ? day(claimDeadline.toISOString().slice(0, 10)) : null} windowDays={claimWindowDays} />
+              )}
+            </div>
+          )}
         </section>
 
         <aside className="space-y-5">

@@ -5,6 +5,7 @@ import { getSession, isManagerRole, isStaffRole, serverClient, adminClient } fro
 import { stripe } from '@/lib/stripe'
 import { sendEmail } from '@/lib/notify'
 import { money } from '@/lib/format'
+import { receive } from '@/lib/intake'
 
 async function staff(manager = false) {
   const [sb, session] = await Promise.all([serverClient(), getSession()])
@@ -117,19 +118,71 @@ export async function refundCharge(fd: FormData) {
   revalidatePath(`/admin/orders/${ch.order_id}`)
 }
 
-/** Intake: mark received, log weight and photos. Overweight fee is added automatically. */
+/** Intake from the admin order page. Same rules as /crew (overweight fee added automatically). */
 export async function receiveItem(fd: FormData) {
   const { sb, session } = await staff()
-  const id = String(fd.get('item_id'))
-  const weight = parseFloat(String(fd.get('weight') ?? '')) || null
-  const { data: item } = await sb.from('order_items').update({
-    status: 'received', received_at: new Date().toISOString(), received_by: session.userId, weight_lbs: weight,
-    warehouse_bin: String(fd.get('bin') ?? '') || null, actual_name: String(fd.get('actual_name') ?? '') || null,
-  }).eq('id', id).select('id, order_id, label_code').single()
-  if (item && weight && weight > 50) {
-    const { data: order } = await sb.from('orders').select('customer_id, campus_id').eq('id', item.order_id).single()
-    const { data: fee } = await sb.from('fee_rules').select('amount_cents').eq('campus_id', order!.campus_id).eq('code', 'overweight').maybeSingle()
-    if (fee) await adminClient()!.from('charges').insert({ order_id: item.order_id, customer_id: order!.customer_id, description: `Overweight ${item.label_code}: ${Math.ceil(weight - 50)} lb over 50`, amount_cents: Math.ceil(weight - 50) * fee.amount_cents, fee_code: 'overweight', status: 'open', payment_method: 'ach', created_by: session.userId })
+  const r = await receive(sb, session.userId, {
+    itemId: String(fd.get('item_id')), weight: parseFloat(String(fd.get('weight') ?? '')) || null,
+    bin: String(fd.get('bin') ?? '') || null, actualName: String(fd.get('actual_name') ?? '') || null, note: null,
+  })
+  revalidatePath(`/admin/orders/${r.orderId}`)
+}
+
+// ---------------------------------------------------------------- claims
+export async function updateClaim(fd: FormData) {
+  const { sb, session } = await staff()
+  const id = String(fd.get('id'))
+  const status = String(fd.get('status'))
+  if (!['submitted', 'reviewing', 'approved', 'denied', 'paid'].includes(status)) throw new Error('Bad status')
+  const approved = String(fd.get('approved') ?? '').trim() ? cents(fd.get('approved')) : null
+  const resolution = String(fd.get('resolution') ?? '').slice(0, 2000) || null
+  const { data: before } = await sb.from('claims').select('status, order_id, customer_id').eq('id', id).single()
+  await sb.from('claims').update({ status, approved_cents: approved, resolution, reviewed_by: session.userId, updated_at: new Date().toISOString() }).eq('id', id)
+  await audit(session.userId, 'claim_update', 'claims', id, { status, approved, resolution })
+  if (before && before.status !== status && fd.get('notify') === 'on') {
+    const db = adminClient()!
+    const { data: p } = await db.from('profiles').select('email').eq('id', before.customer_id).single()
+    const { data: o } = await db.from('orders').select('order_number').eq('id', before.order_id).single()
+    const words: Record<string, string> = {
+      reviewing: 'We’re reviewing your claim and may contact you for more details.',
+      approved: `Your claim has been approved${approved != null ? ` for ${money(approved)}` : ''}. We’ll be in touch about payment.`,
+      denied: 'After review, we’re unable to approve your claim.',
+      paid: `Your claim payment${approved != null ? ` of ${money(approved)}` : ''} has been issued.`,
+      submitted: 'Your claim is open.',
+    }
+    if (p?.email) await sendEmail(db, { customerId: before.customer_id, orderId: before.order_id, template: `claim_${status}`, to: p.email, subject: `Claim update – order #${o?.order_number}`, body: `${words[status]}${resolution ? `\n\n${resolution}` : ''}` })
   }
-  revalidatePath(`/admin/orders/${item?.order_id}`)
+  revalidatePath('/admin/claims')
+}
+
+// ---------------------------------------------------------------- promo codes
+export async function createPromo(_prev: { error?: string; ok?: string } | null, fd: FormData): Promise<{ error?: string; ok?: string }> {
+  const { sb, session } = await staff(true)
+  const code = String(fd.get('code') ?? '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 30)
+  if (code.length < 3) return { error: 'Code must be at least 3 letters or numbers.' }
+  const type = fd.get('type') === 'amount' ? 'amount' : 'percent'
+  const value = parseFloat(String(fd.get('value') ?? ''))
+  if (!(value > 0) || (type === 'percent' && value > 100)) return { error: 'Enter a valid discount.' }
+  const row = {
+    code,
+    percent_off: type === 'percent' ? Math.round(value) : null,
+    amount_off_cents: type === 'amount' ? Math.round(value * 100) : null,
+    campus_id: String(fd.get('campus_id') || '') || null,
+    expires_on: String(fd.get('expires_on') || '') || null,
+    max_uses: parseInt(String(fd.get('max_uses') || ''), 10) || null,
+    active: true,
+  }
+  const { error } = await sb.from('promo_codes').insert(row)
+  if (error) return { error: error.code === '23505' ? 'That code already exists.' : 'Couldn’t save the code.' }
+  await audit(session.userId, 'promo_create', 'promo_codes', code, row)
+  revalidatePath('/admin/promos')
+  return { ok: `Created ${code}.` }
+}
+
+export async function togglePromo(fd: FormData) {
+  const { sb, session } = await staff(true)
+  const id = String(fd.get('id')), active = fd.get('active') === 'true'
+  await sb.from('promo_codes').update({ active }).eq('id', id)
+  await audit(session.userId, active ? 'promo_enable' : 'promo_disable', 'promo_codes', id, {})
+  revalidatePath('/admin/promos')
 }

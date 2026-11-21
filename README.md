@@ -13,7 +13,8 @@ Stripe (Checkout + saved payment methods), Resend (email), Twilio (SMS). Hosted 
 | Marketing | `/`, `/schools`, `/schools/[slug]`, `/how-it-works`, `/pricing` (live calculator), `/ship-ahead`, `/shipping`, `/for-parents`, `/packing-guidelines`, `/faq`, `/about`, `/contact`, `/employment`, `/reviews`, `/terms`, `/privacy` (drafts) |
 | Booking | `/book`: 6 steps (school → you → items → coverage → schedule → review & pay), sticky live total, student/parent toggle, “reserve now, add items later”, saved progress |
 | Customer | `/app` (orders), `/app/orders/[id]` (timeline, items, charges, pay, request delivery), `/app/orders/[id]/labels` (QR labels to print), `/app/settings` (share with a parent or student) |
-| Staff | `/admin` (overview + open owner questions), `/admin/orders` (search, status, delivery hold, intake with weight → overweight fee, add charge / charge saved card, refunds), `/admin/catalog` (prices), `/admin/calendar` (dates + slot capacity), `/api/admin/export` (CSV) |
+| Staff | `/admin` (overview + open owner questions), `/admin/orders` (search, status, delivery hold, intake, add charge / charge saved card, refunds), `/admin/claims` (claims queue), `/admin/promos` (promo codes), `/admin/catalog` (prices), `/admin/calendar` (dates + slot capacity), `/api/admin/export` (CSV) |
+| Crew | `/crew`: phone screen for stations and the warehouse. Scan a QR label with the camera (or type the code), take intake photos, log weight and bin, add unthawed-fridge or shrinkwrap fees, add items that weren't booked, and mark items received. Over 50 lb adds the overweight fee automatically. |
 
 ### Pricing rules
 
@@ -31,8 +32,8 @@ Stripe (Checkout + saved payment methods), Resend (email), Twilio (SMS). Hosted 
 
 ## Set up
 
-1. **Supabase:** create a project, then in the SQL editor run `supabase/migrations/0001_schema.sql`, then
-   `0002_seed.sql`. In Auth → URL configuration, set the site URL and add `https://<your-domain>/auth/callback`.
+1. **Supabase:** create a project, then in the SQL editor run `supabase/migrations/0001_schema.sql`,
+   `0002_seed.sql`, then `0003_crew_claims_promos.sql`. In Auth → URL configuration, set the site URL and add `https://<your-domain>/auth/callback`.
 2. **Env:** copy `.env.example` to `.env.local` and fill in the Supabase URL, anon key and service-role key.
 3. **Make yourself admin:** book once or sign up, then run
    `update public.profiles set role = 'admin' where email = 'you@…';`
@@ -52,6 +53,12 @@ Booking, accounts and admin show a “not connected yet” notice.
 
 ## Not built yet (next phases)
 
-Crew phone mode with QR scanning and photo upload (the schema and storage bucket are ready), claims workflow,
-promo-code admin screen (codes work at checkout and are added in SQL for now), message templates, reviews collection,
-UPS rate quotes, Boston College / storagebc.com campus, and migrating accounts from the old site.
+Message templates, reviews collection, UPS rate quotes, paying approved claims through Stripe (claims are marked
+paid by hand today), Boston College / storagebc.com campus, and migrating accounts from the old site.
+
+## Claims
+
+Customers report damage or loss from their order page once it's delivered. The window is the campus
+`claim_window_days` (3 by default), counted from `delivered_at`, which is set when staff mark the order Completed.
+Damage claims require photos. Staff review in `/admin/claims` next to the intake photos taken at drop-off, set
+status and the approved amount, and can email the customer on each status change.

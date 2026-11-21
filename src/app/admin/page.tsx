@@ -7,11 +7,12 @@ import { orderStatusLabel } from '@/lib/types'
 export default async function AdminHome() {
   const sb = (await serverClient())!
   const today = todayIso()
-  const [{ data: orders }, { data: appts }, { data: open }, { data: unconfirmed }] = await Promise.all([
+  const [{ data: orders }, { data: appts }, { data: open }, { data: unconfirmed }, { count: openClaims }] = await Promise.all([
     sb.from('orders').select('status'),
     sb.from('appointments').select('id, kind, date, window_label, address, hall, orders(id, order_number, student_first_name, student_last_name), locations(name)').gte('date', today).order('date').limit(25),
     sb.from('charges').select('amount_cents').in('status', ['open', 'failed']),
     sb.from('calendar_windows').select('label').eq('confirmed', false),
+    sb.from('claims').select('id', { count: 'exact', head: true }).in('status', ['submitted', 'reviewing']),
   ])
   const counts = (orders ?? []).reduce<Record<string, number>>((m, o) => ({ ...m, [o.status]: (m[o.status] ?? 0) + 1 }), {})
   return (
@@ -20,6 +21,7 @@ export default async function AdminHome() {
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
         <Stat k="Orders" v={String(orders?.length ?? 0)} />
         {Object.entries(counts).map(([s, n]) => <Stat key={s} k={orderStatusLabel(s)} v={String(n)} href={`/admin/orders?status=${s}`} />)}
+        <Stat k="Open claims" v={String(openClaims ?? 0)} href="/admin/claims" />
         <Stat k="Unpaid balance" v={money((open ?? []).reduce((t, c) => t + c.amount_cents, 0))} />
       </div>
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { serverClient } from '@/lib/supabase/server'
 import { money, shortDay } from '@/lib/format'
 import { orderStatusLabel, orderStatusSteps } from '@/lib/types'
+import { signPhotos } from '@/lib/photos'
 import { addCharge, receiveItem, refundCharge, updateOrder } from '../../actions'
 
 export default async function AdminOrder({ params }: { params: Promise<{ id: string }> }) {
@@ -16,6 +17,8 @@ export default async function AdminOrder({ params }: { params: Promise<{ id: str
     sb.from('appointments').select('*, locations(name)').eq('order_id', id).order('created_at'),
     sb.from('fee_rules').select('code, name, amount_cents, unit').eq('campus_id', o.campus_id).eq('active', true).order('sort'),
   ])
+  const photoUrls = await signPhotos(sb, 'intake-photos', (items ?? []).flatMap((it) => it.photos ?? []))
+  const { count: claimCount } = await sb.from('claims').select('id', { count: 'exact', head: true }).eq('order_id', id)
   const acct = o.profiles as { email: string; phone: string; first_name: string; last_name: string; stripe_customer_id: string | null }
 
   return (
@@ -25,6 +28,7 @@ export default async function AdminOrder({ params }: { params: Promise<{ id: str
         <h1 className="h2">#{o.order_number} · {o.student_first_name} {o.student_last_name}</h1>
         <span className="badge bg-ink-900 px-3 py-1 text-sm text-white">{orderStatusLabel(o.status)}</span>
       </div>
+      {!!claimCount && <p className="mt-2"><Link href="/admin/claims?status=all" className="badge bg-red-100 text-red-800">{claimCount} claim{claimCount > 1 ? 's' : ''} on this order</Link></p>}
       <p className="mt-1 text-stone-600">{(o.campuses as { name: string }).name} · {o.service === 'storage' ? 'Summer storage' : 'Ship Ahead'} · booked by {o.booked_by} · account {acct.email} {acct.phone}</p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
@@ -38,7 +42,9 @@ export default async function AdminOrder({ params }: { params: Promise<{ id: str
                   {(items ?? []).map((it) => (
                     <tr key={it.id}>
                       <td className="font-mono text-xs">{it.label_code}</td>
-                      <td>{it.actual_name ?? it.name}<span className="block text-xs text-stone-500">{money(it.unit_price_cents)}{it.weight_lbs ? ` · ${it.weight_lbs} lb` : ''}{it.warehouse_bin ? ` · bin ${it.warehouse_bin}` : ''}</span></td>
+                      <td>{it.actual_name ?? it.name}<span className="block text-xs text-stone-500">{money(it.unit_price_cents)}{it.weight_lbs ? ` · ${it.weight_lbs} lb` : ''}{it.warehouse_bin ? ` · bin ${it.warehouse_bin}` : ''}{it.exceptions?.length ? ` · ${it.exceptions.join(', ').replace(/_/g, ' ')}` : ''}</span>
+                        {!!it.photos?.length && <span className="mt-1 flex gap-1">{(it.photos as string[]).map((p) => photoUrls[p] && <a key={p} href={photoUrls[p]} target="_blank" rel="noreferrer"><img src={photoUrls[p]} alt="Intake" className="h-10 w-10 rounded object-cover" /></a>)}</span>}
+                        {it.intake_note && <span className="block text-xs italic text-stone-600">{it.intake_note}</span>}</td>
                       <td className="capitalize">{it.status}</td>
                       <td>
                         {it.status === 'expected' ? (

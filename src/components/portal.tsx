@@ -91,3 +91,71 @@ export function InviteForm() {
     </form>
   )
 }
+
+export function ClaimForm({ orderId, items, deadline, windowDays }: { orderId: string; items: { id: string; label: string }[]; deadline: string | null; windowDays: number }) {
+  const [open, setOpen] = useState(false)
+  const [itemId, setItemId] = useState('')
+  const [kind, setKind] = useState<'damaged' | 'missing'>('damaged')
+  const [desc, setDesc] = useState('')
+  const [amount, setAmount] = useState('')
+  const [files, setFiles] = useState<File[]>([])
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  if (!open) {
+    return (
+      <div className="mt-4 rounded-xl border border-stone-200 bg-sand-50 p-4">
+        <p className="text-sm text-stone-700">Something damaged or missing? Report it {deadline ? `by ${deadline}` : `within ${windowDays} days of delivery`}. Keep the item, box and packing materials.</p>
+        <button type="button" className="btn-outline btn-sm mt-3" onClick={() => setOpen(true)}>Report damage or loss</button>
+      </div>
+    )
+  }
+  return (
+    <form className="mt-4 space-y-4 rounded-xl border border-stone-200 bg-white p-5" onSubmit={async (e) => {
+      e.preventDefault(); setErr('')
+      if (desc.trim().length < 10) { setErr('Please describe what happened.'); return }
+      if (kind === 'damaged' && files.length === 0) { setErr('Add at least one photo of the damage.'); return }
+      setBusy(true)
+      try {
+        const { browserClient } = await import('@/lib/supabase/browser')
+        const sb = browserClient()
+        const paths: string[] = []
+        for (const f of files.slice(0, 6)) {
+          const path = `${orderId}/claims/${Date.now()}-${paths.length}.${(f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')}`
+          const { error } = await sb!.storage.from('claim-photos').upload(path, f, { contentType: f.type || 'image/jpeg' })
+          if (error) throw new Error('A photo failed to upload. Please try again.')
+          paths.push(path)
+        }
+        const r = await fetch('/api/claims', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ orderId, itemId: itemId || null, kind, description: desc, amount, photos: paths }) })
+        const j = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(j.error ?? 'Couldn’t file the claim.')
+        window.location.href = `/app/orders/${orderId}#claims`
+        window.location.reload()
+      } catch (e2) { setErr((e2 as Error).message); setBusy(false) }
+    }}>
+      <p className="font-bold text-ink-900">Report damage or loss</p>
+      <div className="flex gap-2" role="radiogroup" aria-label="Type">
+        {(['damaged', 'missing'] as const).map((k) => (
+          <button key={k} type="button" role="radio" aria-checked={kind === k} onClick={() => setKind(k)} className={`rounded-lg border px-4 py-2 text-sm font-semibold capitalize ${kind === k ? 'border-ink-900 bg-ink-900 text-white' : 'border-stone-300'}`}>{k}</button>
+        ))}
+      </div>
+      <div><label htmlFor="cl-item" className="label">Which item?</label>
+        <select id="cl-item" className="input" value={itemId} onChange={(e) => setItemId(e.target.value)}>
+          <option value="">Not sure / more than one</option>
+          {items.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
+        </select>
+      </div>
+      <div><label htmlFor="cl-desc" className="label">What happened?</label><textarea id="cl-desc" rows={4} className="input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Describe the damage or what’s missing, and what was inside." /></div>
+      <div><label htmlFor="cl-amt" className="label">Value or repair cost ($)</label><input id="cl-amt" inputMode="decimal" className="input max-w-[200px]" value={amount} onChange={(e) => setAmount(e.target.value)} /><p className="hint">We may ask for a receipt or repair estimate.</p></div>
+      <div><label htmlFor="cl-photos" className="label">Photos {kind === 'damaged' ? '(required)' : '(optional)'}</label>
+        <input id="cl-photos" type="file" accept="image/*" multiple className="block text-sm" onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 6))} />
+        <p className="hint">Up to 6 photos: the damage, the box and the label.</p>
+      </div>
+      {err && <p role="alert" className="text-sm font-semibold text-red-700">{err}</p>}
+      <div className="flex gap-2">
+        <button className="btn-dark" disabled={busy}>{busy ? 'Sending…' : 'Submit claim'}</button>
+        <button type="button" className="btn-outline" onClick={() => setOpen(false)}>Cancel</button>
+      </div>
+    </form>
+  )
+}
